@@ -301,24 +301,36 @@ export class StarterPlayerController {
     this.smoothedCameraFocus.lerp(focusTarget, 1 - Math.exp(-deltaSeconds * focusResponse));
 
     if (this.cameraMode === "fps") {
-      this.camera.position.copy(this.smoothedCameraEye);
-      this.camera.lookAt(scratchCameraLookTarget.copy(this.smoothedCameraFocus).add(viewDirection));
+      const cameraEye = this.mountedBike ? eyePosition : this.smoothedCameraEye;
+      const cameraFocus = this.mountedBike ? focusTarget : this.smoothedCameraFocus;
+      this.camera.position.copy(cameraEye);
+      this.camera.lookAt(scratchCameraLookTarget.copy(cameraFocus).add(viewDirection));
     } else if (this.cameraMode === "third-person") {
-      const followDistance = this.mountedBike
-        ? Math.max(1.8, this.standingHeight * 1.55)
-        : Math.max(2.15, this.standingHeight * 1.85);
-      const targetCameraPosition = scratchTargetCameraPosition.copy(this.smoothedCameraEye).addScaledVector(viewDirection, -followDistance);
-      targetCameraPosition.y += this.standingHeight * (this.mountedBike ? 0.1 : 0.13);
-      this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * (this.mountedBike ? 4.8 : 8)));
-      this.camera.lookAt(this.smoothedCameraFocus);
+      if (this.mountedBike) {
+        const targetCameraPosition = scratchTargetCameraPosition.copy(focusTarget).addScaledVector(viewDirection, -1.15);
+        targetCameraPosition.y += this.standingHeight * 0.04;
+        this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 8.5));
+        this.camera.lookAt(focusTarget);
+      } else {
+        const followDistance = Math.max(2.15, this.standingHeight * 1.85);
+        const targetCameraPosition = scratchTargetCameraPosition.copy(this.smoothedCameraEye).addScaledVector(viewDirection, -followDistance);
+        targetCameraPosition.y += this.standingHeight * 0.13;
+        this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 8));
+        this.camera.lookAt(this.smoothedCameraFocus);
+      }
     } else {
-      const followDistance = this.mountedBike
-        ? Math.max(5.2, this.standingHeight * 3.15)
-        : Math.max(5.8, this.standingHeight * 3.9);
-      const targetCameraPosition = scratchTargetCameraPosition.copy(this.smoothedCameraEye).addScaledVector(viewDirection, -followDistance);
-      targetCameraPosition.y += this.standingHeight * (this.mountedBike ? 0.92 : 1.18);
-      this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * (this.mountedBike ? 4.4 : 7)));
-      this.camera.lookAt(this.smoothedCameraFocus);
+      if (this.mountedBike) {
+        const targetCameraPosition = scratchTargetCameraPosition.copy(focusTarget).addScaledVector(viewDirection, -2.9);
+        targetCameraPosition.y += this.standingHeight * 0.48;
+        this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 7.25));
+        this.camera.lookAt(focusTarget);
+      } else {
+        const followDistance = Math.max(5.8, this.standingHeight * 3.9);
+        const targetCameraPosition = scratchTargetCameraPosition.copy(this.smoothedCameraEye).addScaledVector(viewDirection, -followDistance);
+        targetCameraPosition.y += this.standingHeight * 1.18;
+        this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 7));
+        this.camera.lookAt(this.smoothedCameraFocus);
+      }
     }
 
     this.updateAnimation(deltaSeconds);

@@ -1,7 +1,7 @@
 {
   "format": "ggez.animation.bundle",
   "version": 1,
-  "name": "Player",
+  "name": "Animation Graph",
   "artifact": "./graph.animation.json",
   "characterAsset": "./assets/final-opt.glb",
   "clips": [
@@ -39,7 +39,7 @@
       "id": "drive-bike",
       "name": "Drive_Bike",
       "duration": 5.0333333015441895,
-      "source": "final-opt.glb"
+      "source": "Drive_Bike.glb"
     }
   ],
   "clipAssets": {}
