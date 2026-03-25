@@ -1,11 +1,19 @@
-import animationBundleUrl from "./animation.bundle.json?url";
+import finalOptUrl from "./assets/final-opt.glb?url";
+import graphAnimationText from "./graph.animation.json?raw";
+import animationBundleText from "./animation.bundle.json?raw";
 import {
-  createPublicRuntimeAnimationSource,
+  createBundledRuntimeAnimationSource,
   defineGameAnimationBundle
 } from "../../game/runtime-animation-sources";
 
 export const playerAnimations = defineGameAnimationBundle({
   id: "player",
-  source: createPublicRuntimeAnimationSource(animationBundleUrl),
+  source: createBundledRuntimeAnimationSource({
+    artifactText: graphAnimationText,
+    assetUrls: {
+      "assets/final-opt.glb": finalOptUrl
+    },
+    manifestText: animationBundleText
+  }),
   title: "Player"
 });

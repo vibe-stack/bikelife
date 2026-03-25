@@ -28,10 +28,12 @@ type GroundContact = {
 };
 
 type GroundState = {
+  centerHit: boolean;
   contactCount: number;
   grounded: boolean;
   normal: Vector3;
   supportY: number;
+  wheelContactCount: number;
 };
 
 const BIKE_AIR_ANGULAR_DAMPING = 0.4;
@@ -46,10 +48,16 @@ const BIKE_FORWARD_ACCELERATION = 12.5;
 const BIKE_FORWARD_SPEED = 10.5;
 const BIKE_BOOST_SPEED = 13.4;
 const BIKE_GROUND_CLIMB_RESPONSE = 34;
+const BIKE_GROUND_CONTACT_GRACE = 0.08;
 const BIKE_GROUND_ALIGN_RESPONSE = 18;
 const BIKE_GROUND_ANGULAR_DAMPING = 12;
 const BIKE_GROUND_NORMAL_MIN_Y = 0.35;
+const BIKE_GROUND_NORMAL_RESPONSE = 10;
 const BIKE_GROUND_POSITION_RESPONSE = 24;
+const BIKE_GROUND_SNAP_DISTANCE = 0.24;
+const BIKE_GROUND_UPWARD_STICK_LIMIT = 1.8;
+const BIKE_GROUND_VELOCITY_RESPONSE = 10.5;
+const BIKE_GROUND_VERTICAL_DAMPING = 18;
 const BIKE_LANDING_ANGULAR_WEIGHT = 0.18;
 const BIKE_LANDING_AIRTIME_WEIGHT = 0.7;
 const BIKE_LANDING_FREE_PHYSICS_MAX = 0.22;
@@ -80,13 +88,16 @@ const BIKE_TAKEOFF_NORMAL_START_Y = 0.58;
 const BIKE_TAKEOFF_SUPPORT_RELEASE = 0.92;
 const BIKE_TAKEOFF_VERTICAL_END = 4.6;
 const BIKE_TAKEOFF_VERTICAL_START = 1.4;
+const BIKE_TOPPLE_ENTER_TIME = 0.14;
 const BIKE_TOPPLE_ANGULAR_DAMPING = 1.35;
+const BIKE_TOPPLE_EXIT_TIME = 0.2;
 const BIKE_TOPPLE_RECOVERY_ROLL_ACCELERATION = 1.55;
 const BIKE_TOPPLE_SIDE_FRICTION = 5.4;
 const BIKE_TOPPLE_RECOVERY_SINGLE_CONTACT_UPRIGHT_MIN = 0.72;
 const BIKE_TOPPLE_RECOVERY_UPRIGHT_MIN = 0.86;
 const BIKE_TOPPLE_SINGLE_CONTACT_UPRIGHT_MIN = 0.34;
 const BIKE_TOPPLE_UPRIGHT_MIN = 0.12;
+const BIKE_WHEEL_CENTER_SUPPORT_LEAD = 0.08;
 const BIKE_WHEEL_PROBE_HEIGHT = 0.55;
 const BIKE_WHEEL_PROBE_MARGIN = 0.45;
 
@@ -104,12 +115,17 @@ export class BikePhysicsRig {
   private readonly rearContact = createGroundContact();
   private readonly rearWheelAnchor: Vector3;
   private readonly riderLocalOffset = new Vector3();
+  private readonly stableGroundNormal = new Vector3(0, 1, 0);
   private readonly wheels: Object3D[];
   private readonly world: PhysicsWorld;
   private airborneTime = 0;
+  private groundedGraceRemaining = 0;
   private landingFreePhysicsRemaining = 0;
   private mounted = false;
+  private recoveryTime = 0;
+  private stableSupportY = 0;
   private toppled = false;
+  private toppleTime = 0;
   private wasGrounded = true;
   private yaw = 0;
 
@@ -177,6 +193,7 @@ export class BikePhysicsRig {
     });
 
     this.yaw = this.getYaw();
+    this.stableSupportY = options.object.position.y;
   }
 
   dispose() {
@@ -230,8 +247,13 @@ export class BikePhysicsRig {
     rigidBody.setLinearVelocity(this.world, this.body, [0, 0, 0]);
     rigidBody.setAngularVelocity(this.world, this.body, [0, 0, 0]);
     this.airborneTime = 0;
+    this.groundedGraceRemaining = BIKE_GROUND_CONTACT_GRACE;
     this.landingFreePhysicsRemaining = 0;
+    this.recoveryTime = 0;
+    this.stableGroundNormal.copy(groundState.normal);
+    this.stableSupportY = targetY;
     this.toppled = false;
+    this.toppleTime = 0;
     this.wasGrounded = true;
     this.yaw = yaw;
   }
@@ -263,10 +285,17 @@ export class BikePhysicsRig {
     const speedForward = velocity.dot(this.getForward(scratchForward, quaternion));
     const currentUp = scratchUp.set(0, 1, 0).applyQuaternion(quaternion).normalize();
 
-    const currentGroundState = this.resolveGroundState(position, quaternion);
+    const currentGroundState = this.resolveStableGroundState(
+      deltaSeconds,
+      this.resolveGroundState(position, quaternion),
+      position,
+      velocity
+    );
 
     if (!currentGroundState.grounded) {
       this.airborneTime += deltaSeconds;
+      this.recoveryTime = 0;
+      this.toppleTime = 0;
       this.wasGrounded = false;
       this.updateAirborne(deltaSeconds, input, quaternion, velocity);
       return;
@@ -293,13 +322,27 @@ export class BikePhysicsRig {
     const bodyYaw = this.getYaw();
     const throttleInput = input.throttle;
     const steerInput = input.steer;
+    const rideableGroundState = this.isRideableGroundState(currentGroundState, currentUp);
+    const recoveredGroundState = this.isRecoveredGroundState(currentGroundState, currentUp);
 
-    if (this.toppled && this.isRecoveredGroundState(currentGroundState, currentUp)) {
-      this.toppled = false;
+    if (this.toppled) {
+      this.toppleTime = 0;
+      this.recoveryTime = recoveredGroundState ? this.recoveryTime + deltaSeconds : 0;
+
+      if (this.recoveryTime >= BIKE_TOPPLE_EXIT_TIME) {
+        this.toppled = false;
+        this.recoveryTime = 0;
+      }
+    } else {
+      this.recoveryTime = 0;
+      this.toppleTime = rideableGroundState ? Math.max(0, this.toppleTime - deltaSeconds * 2) : this.toppleTime + deltaSeconds;
+
+      if (this.toppleTime >= BIKE_TOPPLE_ENTER_TIME) {
+        this.toppled = true;
+      }
     }
 
-    if (this.toppled || !this.isRideableGroundState(currentGroundState, currentUp)) {
-      this.toppled = true;
+    if (this.toppled) {
       this.landingFreePhysicsRemaining = 0;
       this.yaw = bodyYaw;
       this.updateToppledGrounded(deltaSeconds, input, quaternion, velocity, angularVelocity, currentGroundState);
@@ -349,7 +392,12 @@ export class BikePhysicsRig {
       groundedPitch,
       scratchTargetQuaternion
     );
-    const refinedGroundState = this.resolveGroundState(position, roughQuaternion);
+    const refinedGroundState = this.resolveStableGroundState(
+      deltaSeconds,
+      this.resolveGroundState(position, roughQuaternion),
+      position,
+      velocity
+    );
     const refinedLaunchNormal = scratchRefinedLaunchNormal
       .copy(refinedGroundState.normal)
       .lerp(currentUp, takeoffFactor)
@@ -397,7 +445,7 @@ export class BikePhysicsRig {
     if (idleThrottle) {
       const rolledPlanarVelocity = scratchRolledPlanarVelocity.copy(planarVelocity).addScaledVector(slopeAcceleration, deltaSeconds);
       const forwardDamping = MathUtils.lerp(
-        BIKE_SLOPE_FREE_ROLL_DAMPING_FLAT,
+        BIKE_COAST_DECELERATION,
         BIKE_SLOPE_FREE_ROLL_DAMPING_STEEP,
         steepness
       );
@@ -437,6 +485,10 @@ export class BikePhysicsRig {
       .copy(launchVelocityDirection)
       .multiplyScalar(nextForwardSpeed)
       .addScaledVector(driveRight, nextSideSpeed);
+    const velocityResponse = MathUtils.lerp(BIKE_GROUND_VELOCITY_RESPONSE, 4.8, takeoffFactor);
+    const smoothedPlanarVelocity = scratchSmoothedPlanarVelocity
+      .copy(planarVelocity)
+      .lerp(scratchTargetPlanarVelocity.copy(desiredVelocity).setY(0), 1 - Math.exp(-deltaSeconds * velocityResponse));
 
     const supportResponseBase = refinedGroundState.supportY > position.y
       ? BIKE_GROUND_CLIMB_RESPONSE
@@ -465,11 +517,16 @@ export class BikePhysicsRig {
       input.throttle > 0.05 && climbDelta > 0.015
         ? Math.min(BIKE_STEP_ASSIST_SPEED, climbDelta / Math.max(deltaSeconds, 1e-3))
         : 0;
+    const groundedVerticalVelocity = MathUtils.lerp(
+      damp(velocity.y, 0, BIKE_GROUND_VERTICAL_DAMPING, deltaSeconds),
+      velocity.y,
+      takeoffFactor
+    );
 
     rigidBody.setLinearVelocity(this.world, this.body, [
-      desiredVelocity.x,
-      Math.max(velocity.y, climbVelocity, desiredVelocity.y),
-      desiredVelocity.z
+      smoothedPlanarVelocity.x,
+      Math.max(climbVelocity, groundedVerticalVelocity, desiredVelocity.y),
+      smoothedPlanarVelocity.z
     ]);
     const angularDamping = MathUtils.lerp(BIKE_GROUND_ANGULAR_DAMPING, BIKE_TAKEOFF_ANGULAR_DAMPING, takeoffFactor);
     const dampedAngularVelocity = scratchGroundAngularVelocity.copy(angularVelocity).multiplyScalar(
@@ -477,7 +534,7 @@ export class BikePhysicsRig {
     );
     rigidBody.setAngularVelocity(this.world, this.body, [
       dampedAngularVelocity.x,
-      0,
+      MathUtils.lerp(dampedAngularVelocity.y, 0, 1 - Math.exp(-deltaSeconds * (angularDamping * 0.75))),
       dampedAngularVelocity.z
     ]);
   }
@@ -540,7 +597,7 @@ export class BikePhysicsRig {
   private resolveTakeoffFactor(groundState: GroundState, velocity: Vector3, speedForward: number) {
     const speedWeight = MathUtils.smoothstep(Math.abs(speedForward), BIKE_FORWARD_SPEED * 0.45, BIKE_BOOST_SPEED * 0.9);
     const steepnessRelease = 1 - MathUtils.smoothstep(groundState.normal.y, BIKE_TAKEOFF_NORMAL_START_Y, BIKE_TAKEOFF_NORMAL_END_Y);
-    const contactRelease = groundState.contactCount < 2 ? BIKE_TAKEOFF_CONTACT_RELEASE : 0;
+    const contactRelease = groundState.wheelContactCount < 2 ? BIKE_TAKEOFF_CONTACT_RELEASE : 0;
     const verticalRelease = MathUtils.smoothstep(Math.max(velocity.y, 0), BIKE_TAKEOFF_VERTICAL_START, BIKE_TAKEOFF_VERTICAL_END) * 0.42;
     return MathUtils.clamp(steepnessRelease * speedWeight + contactRelease * speedWeight + verticalRelease, 0, 0.92);
   }
@@ -550,7 +607,7 @@ export class BikePhysicsRig {
       return false;
     }
 
-    if (groundState.contactCount < 2 && currentUp.y < BIKE_TOPPLE_SINGLE_CONTACT_UPRIGHT_MIN) {
+    if (groundState.wheelContactCount < 2 && currentUp.y < BIKE_TOPPLE_SINGLE_CONTACT_UPRIGHT_MIN) {
       return false;
     }
 
@@ -562,11 +619,60 @@ export class BikePhysicsRig {
       return false;
     }
 
-    if (groundState.contactCount < 2 && currentUp.y < BIKE_TOPPLE_RECOVERY_SINGLE_CONTACT_UPRIGHT_MIN) {
+    if (groundState.wheelContactCount < 2 && currentUp.y < BIKE_TOPPLE_RECOVERY_SINGLE_CONTACT_UPRIGHT_MIN) {
       return false;
     }
 
     return true;
+  }
+
+  private resolveStableGroundState(
+    deltaSeconds: number,
+    groundState: GroundState,
+    position: Vector3,
+    velocity: Vector3
+  ): GroundState {
+    if (groundState.grounded) {
+      const normalAlpha = 1 - Math.exp(-deltaSeconds * BIKE_GROUND_NORMAL_RESPONSE);
+
+      if (this.groundedGraceRemaining <= 0) {
+        this.stableGroundNormal.copy(groundState.normal);
+      } else {
+        this.stableGroundNormal.lerp(groundState.normal, normalAlpha).normalize();
+      }
+
+      this.stableSupportY = groundState.supportY;
+      this.groundedGraceRemaining = BIKE_GROUND_CONTACT_GRACE;
+      return {
+        centerHit: groundState.centerHit,
+        contactCount: groundState.contactCount,
+        grounded: true,
+        normal: scratchStableGroundNormal.copy(this.stableGroundNormal),
+        supportY: this.stableSupportY,
+        wheelContactCount: groundState.wheelContactCount
+      };
+    }
+
+    const withinSnapDistance = position.y - this.stableSupportY <= BIKE_GROUND_SNAP_DISTANCE;
+
+    if (
+      this.groundedGraceRemaining > 0
+      && velocity.y <= BIKE_GROUND_UPWARD_STICK_LIMIT
+      && withinSnapDistance
+    ) {
+      this.groundedGraceRemaining = Math.max(0, this.groundedGraceRemaining - deltaSeconds);
+      return {
+        centerHit: false,
+        contactCount: 1,
+        grounded: true,
+        normal: scratchStableGroundNormal.copy(this.stableGroundNormal),
+        supportY: this.stableSupportY,
+        wheelContactCount: 1
+      };
+    }
+
+    this.groundedGraceRemaining = 0;
+    return groundState;
   }
 
   private updateToppledGrounded(
@@ -676,9 +782,10 @@ export class BikePhysicsRig {
     const rearContact = this.resolveWheelContact(this.rearWheelAnchor, bodyPosition, orientation, this.rearContact);
     const centerContact = this.resolveCenterSupport(bodyPosition);
 
+    let accumulatedSupportY = 0;
     let contactCount = 0;
-    let supportY = 0;
     let highestSupportY = Number.NEGATIVE_INFINITY;
+    let wheelContactCount = 0;
     scratchGroundNormal.set(0, 0, 0);
 
     for (const contact of [frontContact, rearContact]) {
@@ -687,36 +794,52 @@ export class BikePhysicsRig {
       }
 
       contactCount += 1;
-      supportY += contact.supportY;
+      wheelContactCount += 1;
+      accumulatedSupportY += contact.supportY;
       highestSupportY = Math.max(highestSupportY, contact.supportY);
       scratchGroundNormal.add(contact.normal);
     }
 
-    if (contactCount === 0) {
+    if (wheelContactCount === 0) {
       if (centerContact.hit) {
         return {
           contactCount: 1,
+          centerHit: true,
           grounded: true,
           normal: scratchGroundNormal.copy(centerContact.normal),
-          supportY: centerContact.supportY
+          supportY: centerContact.supportY,
+          wheelContactCount: 0
         };
       }
 
       return {
         contactCount: 0,
+        centerHit: false,
         grounded: false,
         normal: scratchGroundNormal.copy(scratchWorldUp),
-        supportY: bodyPosition.y
+        supportY: bodyPosition.y,
+        wheelContactCount: 0
       };
     }
 
-    const averagedSupportY = supportY / contactCount;
+    const averagedSupportY = accumulatedSupportY / wheelContactCount;
     const steppedSupportY = Math.max(averagedSupportY, highestSupportY - 0.03);
+    const centerSupportY = centerContact.hit
+      ? Math.min(centerContact.supportY, steppedSupportY + BIKE_WHEEL_CENTER_SUPPORT_LEAD)
+      : steppedSupportY;
+
+    if (centerContact.hit) {
+      contactCount += 1;
+      scratchGroundNormal.addScaledVector(centerContact.normal, wheelContactCount < 2 ? 0.55 : 0.35);
+    }
+
     return {
       contactCount,
+      centerHit: centerContact.hit,
       grounded: true,
       normal: scratchGroundNormal.normalize(),
-      supportY: centerContact.hit ? Math.max(steppedSupportY, centerContact.supportY) : steppedSupportY
+      supportY: Math.max(steppedSupportY, centerSupportY),
+      wheelContactCount
     };
   }
 
@@ -838,8 +961,11 @@ const scratchRolledPlanarVelocity = new Vector3();
 const scratchRiderEuler = new Euler(0, 0, 0, "YXZ");
 const scratchRotatedAnchor = new Vector3();
 const scratchSmoothedQuaternion = new Quaternion();
+const scratchSmoothedPlanarVelocity = new Vector3();
 const scratchSlopeVector = new Vector3();
+const scratchStableGroundNormal = new Vector3();
 const scratchTargetQuaternion = new Quaternion();
+const scratchTargetPlanarVelocity = new Vector3();
 const scratchUp = new Vector3();
 const scratchVelocity = new Vector3();
 const scratchWheelbase = new Vector3();
