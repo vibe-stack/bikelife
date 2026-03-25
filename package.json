@@ -1,0 +1,35 @@
+{
+  "name": "meek",
+  "private": true,
+  "version": "0.0.0",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.2",
+    "@ggez/anim-core": "^0.1.3",
+    "@ggez/anim-exporter": "^0.1.3",
+    "@ggez/anim-runtime": "^0.1.3",
+    "@ggez/anim-schema": "^0.1.3",
+    "@ggez/anim-three": "^0.1.3",
+    "@ggez/game-dev": "^0.1.3",
+    "@ggez/gameplay-runtime": "^0.1.3",
+    "@ggez/render-pipeline": "^0.1.3",
+    "@ggez/runtime-format": "^0.1.3",
+    "@ggez/runtime-physics-rapier": "^0.1.3",
+    "@ggez/shared": "^0.1.3",
+    "@ggez/three-runtime": "^0.1.3",
+    "nipplejs": "^1.0.1",
+    "three": "^0.181.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.181.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.12"
+  }
+}

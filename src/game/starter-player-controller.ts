@@ -1,0 +1,1174 @@
+import type { GameplayRuntime } from "@ggez/gameplay-runtime";
+import { copyPose, createPoseBufferFromRig, type PoseBuffer } from "@ggez/anim-core";
+import { createAnimatorInstance } from "@ggez/anim-runtime";
+import { vec3, type SceneSettings, type Vec3 } from "@ggez/shared";
+import RAPIER from "@dimforge/rapier3d-compat";
+import nipplejs from "nipplejs";
+import { Bone, Box3, Euler, Group, MathUtils, PerspectiveCamera, Quaternion, Vector3, type Object3D, type Skeleton } from "three";
+import { animations } from "../animations";
+
+type StarterPlayerSpawn = {
+  position: Vec3;
+  rotationY: number;
+};
+
+export type StarterPlayerBike = {
+  frontWheelAnchor?: { x: number; y: number; z: number };
+  groundOffset?: number;
+  mountRadius?: number;
+  object: Object3D;
+  rearWheelAnchor?: { x: number; y: number; z: number };
+  wheelRadius?: number;
+  wheels?: Object3D[];
+};
+
+type RegisteredBike = {
+  frontWheelAnchor: Vector3;
+  groundOffset: number;
+  mountRadius: number;
+  object: Object3D;
+  rearWheelAnchor: Vector3;
+  wheelRadius: number;
+  wheels: Object3D[];
+};
+
+type StarterPlayerControllerOptions = {
+  camera: PerspectiveCamera;
+  cameraMode: SceneSettings["player"]["cameraMode"];
+  domElement: HTMLCanvasElement;
+  gameplayRuntime: GameplayRuntime;
+  sceneSettings: Pick<SceneSettings, "player" | "world">;
+  setStatus: (message: string) => void;
+  spawn: StarterPlayerSpawn;
+  world: RAPIER.World;
+};
+
+const BIKE_CRUISE_SPEED_BONUS = 2;
+const BIKE_INTERACT_KEY = "KeyF";
+const BIKE_MOUNT_CLEARANCE = 0.02;
+const BIKE_MOUNT_OFFSET = 0;
+const BIKE_MODEL_YAW_OFFSET = Math.PI;
+const BIKE_PITCH_RESPONSE = 7;
+const BIKE_REVERSE_MULTIPLIER = 0.45;
+const BIKE_ROLL_RESPONSE = 8;
+const BIKE_TURN_SPEED = 2.6;
+const BIKE_WHEELIE_FORWARD_SHIFT = 2;
+const BIKE_WHEELIE_RESPONSE = 6;
+const DEFAULT_BIKE_MOUNT_RADIUS = 2.4;
+const FOOT_AIR_ACCELERATION = 2.8;
+const FOOT_AIR_DECELERATION = 1.8;
+const FOOT_ACCELERATION = 15;
+const FOOT_DECELERATION = 10;
+const GROUND_MIN_NORMAL_Y = 0.45;
+const GROUND_PROBE_DISTANCE = 0.2;
+const GROUND_PROBE_HEIGHT = 0.12;
+const JUMP_GROUND_LOCK_SECONDS = 0.12;
+const MOUNTED_ACCELERATION = 8.5;
+const MOUNTED_DECELERATION = 5.5;
+const ON_FOOT_ANIMATION_PLAYBACK_SCALE = 2;
+const PLAYER_SCALE_FACTOR = 0.5;
+const RUN_SPEED_MULTIPLIER = 1.2;
+const WALK_SPEED_MULTIPLIER = 0.72;
+
+export class StarterPlayerController {
+  readonly object = new Group();
+
+  private readonly body: RAPIER.RigidBody;
+  private readonly camera: PerspectiveCamera;
+  private cameraMode: SceneSettings["player"]["cameraMode"];
+  private readonly domElement: HTMLCanvasElement;
+  private readonly footOffset: number;
+  private readonly gameplayRuntime: GameplayRuntime;
+  private readonly halfHeight: number;
+  private readonly isTouchDevice: boolean;
+  private interactQueued = false;
+  private jumpGroundLockRemaining = 0;
+  private jumpQueued = false;
+  private readonly keyState = new Set<string>();
+  private mobileBikeButton: HTMLButtonElement | null = null;
+  private mobileControlsRoot: HTMLDivElement | null = null;
+  private mobileJoystick: ReturnType<typeof nipplejs.create> | null = null;
+  private mobileJoystickZone: HTMLDivElement | null = null;
+  private mobileMoveX = 0;
+  private mobileMoveY = 0;
+  private mobileOrbitPointerId: number | null = null;
+  private mobileOrbitLastX = 0;
+  private mobileOrbitLastY = 0;
+  private mobileWheelieButton: HTMLButtonElement | null = null;
+  private mobileWheelieHeld = false;
+  private orbitYaw = 0;
+  private pitch = 0;
+  private pointerLocked = false;
+  private readonly radius: number;
+  private readonly sceneSettings: Pick<SceneSettings, "player" | "world">;
+  private readonly setStatus: (message: string) => void;
+  private readonly standingHeight: number;
+  private readonly supportVelocity = new Vector3();
+  private readonly targetPlanarVelocity = new Vector3();
+  private readonly planarVelocity = new Vector3();
+  private readonly visualRoot = new Group();
+  private readonly world: RAPIER.World;
+  private animationAnimator: ReturnType<typeof createAnimatorInstance> | null = null;
+  private animationBaseOffset = new Vector3();
+  private animationBonesByName = new Map<string, Bone>();
+  private animationDisplayPose: PoseBuffer | null = null;
+  private animationModeValue = 0;
+  private animationObject: Object3D | null = null;
+  private animationRootCompensation = new Vector3();
+  private animationScale = 1;
+  private animationSkeletons: Skeleton[] = [];
+  private animationSpeedValue = 0;
+  private bike: RegisteredBike | null = null;
+  private mountedHandleBones: Bone[] = [];
+  private mountedBikeLean = 0;
+  private mountedBikePitch = 0;
+  private mountedSurfacePitch = 0;
+  private mountedSurfaceRoll = 0;
+  private mountedBikeWheelie = 0;
+  private mountedCounterTiltBones: Bone[] = [];
+  private mountedThrottleInput = 0;
+  private mountedTurnInput = 0;
+  private mountedBike: RegisteredBike | null = null;
+  private yaw = 0;
+
+  static async create(options: StarterPlayerControllerOptions) {
+    const controller = new StarterPlayerController(options);
+    await controller.initializeAnimatedCharacter();
+    return controller;
+  }
+
+  constructor(options: StarterPlayerControllerOptions) {
+    this.camera = options.camera;
+    this.cameraMode = options.cameraMode;
+    this.domElement = options.domElement;
+    this.gameplayRuntime = options.gameplayRuntime;
+    this.sceneSettings = options.sceneSettings;
+    this.setStatus = options.setStatus;
+    this.world = options.world;
+    this.isTouchDevice = isLikelyTouchDevice();
+    this.standingHeight = Math.max(0.9, options.sceneSettings.player.height * PLAYER_SCALE_FACTOR);
+    this.radius = MathUtils.clamp(this.standingHeight * 0.18, 0.24, 0.42);
+    this.halfHeight = Math.max(0.12, this.standingHeight * 0.5 - this.radius);
+    this.footOffset = this.halfHeight + this.radius;
+    this.yaw = options.spawn.rotationY;
+    this.orbitYaw = options.spawn.rotationY;
+    this.pitch = defaultPitchForCameraMode(this.cameraMode);
+
+    const spawnPosition = {
+      x: options.spawn.position.x,
+      y: options.spawn.position.y + this.standingHeight * 0.5 + 0.04,
+      z: options.spawn.position.z
+    };
+    const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
+      .setTranslation(spawnPosition.x, spawnPosition.y, spawnPosition.z)
+      .setCanSleep(false)
+      .setCcdEnabled(true)
+      .setLinearDamping(0.8);
+    this.body = this.world.createRigidBody(bodyDesc);
+    this.body.lockRotations(true, true);
+    this.world.createCollider(RAPIER.ColliderDesc.capsule(this.halfHeight, this.radius).setFriction(0), this.body);
+
+    this.object.add(this.visualRoot);
+    this.object.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z);
+    this.visualRoot.rotation.y = this.yaw;
+
+    this.domElement.addEventListener("click", this.handleCanvasClick);
+    window.addEventListener("blur", this.handleWindowBlur);
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("keyup", this.handleKeyUp);
+    window.addEventListener("mousemove", this.handleMouseMove);
+
+    if (this.isTouchDevice) {
+      this.initializeMobileControls();
+    }
+  }
+
+  attachBike(bike: StarterPlayerBike | null) {
+        this.bike = bike
+      ? {
+          frontWheelAnchor: new Vector3(
+            bike.frontWheelAnchor?.x ?? 0,
+            bike.frontWheelAnchor?.y ?? 0,
+            bike.frontWheelAnchor?.z ?? 0
+          ),
+          groundOffset: bike.groundOffset ?? 0,
+          mountRadius: bike.mountRadius ?? DEFAULT_BIKE_MOUNT_RADIUS,
+          object: bike.object,
+          rearWheelAnchor: new Vector3(
+            bike.rearWheelAnchor?.x ?? 0,
+            bike.rearWheelAnchor?.y ?? 0,
+            bike.rearWheelAnchor?.z ?? 0
+          ),
+          wheelRadius: bike.wheelRadius ?? 0.34,
+          wheels: bike.wheels ?? []
+        }
+      : null;
+
+    if (!this.bike) {
+      this.mountedBike = null;
+    }
+  }
+
+  dispose() {
+    this.releasePointerLock();
+    this.domElement.removeEventListener("click", this.handleCanvasClick);
+    window.removeEventListener("blur", this.handleWindowBlur);
+    window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("keyup", this.handleKeyUp);
+    window.removeEventListener("mousemove", this.handleMouseMove);
+    this.disposeMobileControls();
+    this.gameplayRuntime.removeActor("player");
+    this.setStatus("");
+  }
+
+  releasePointerLock() {
+    if (document.pointerLockElement === this.domElement) {
+      document.exitPointerLock();
+    }
+
+    this.pointerLocked = false;
+  }
+
+  setCameraMode(cameraMode: SceneSettings["player"]["cameraMode"]) {
+    this.cameraMode = cameraMode;
+  }
+
+  updateAfterStep(deltaSeconds: number) {
+    const translation = this.body.translation();
+    this.object.position.set(translation.x, translation.y, translation.z);
+    if (this.isTouchDevice) {
+      this.orbitYaw = dampAngle(this.orbitYaw, this.yaw, 12, deltaSeconds);
+    }
+    if (this.mountedBike) {
+      this.visualRoot.rotation.set(
+        (this.mountedSurfacePitch + this.mountedBikePitch) * 0.35,
+        this.yaw,
+        (this.mountedSurfaceRoll + this.mountedBikeLean) * 0.55,
+        "YXZ"
+      );
+    } else {
+      this.visualRoot.rotation.set(0, this.yaw, 0);
+    }
+    this.visualRoot.visible = this.cameraMode !== "fps";
+
+    if (this.mountedBike) {
+      this.syncMountedBike(translation, deltaSeconds);
+    }
+
+    const eyePosition = new Vector3(
+      translation.x,
+      translation.y + this.standingHeight * (this.mountedBike ? 0.5 : 0.42),
+      translation.z
+    );
+    const viewDirection = resolveViewDirection(this.orbitYaw, this.pitch, scratchViewDirection);
+    const focusTarget = scratchFocusTarget.copy(eyePosition);
+
+    if (this.mountedBike) {
+      focusTarget.addScaledVector(scratchYawForward.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw)), 0.9);
+    }
+
+    if (this.cameraMode === "fps") {
+      this.camera.position.copy(eyePosition);
+      this.camera.lookAt(focusTarget.clone().add(viewDirection));
+    } else if (this.cameraMode === "third-person") {
+      const followDistance = this.mountedBike
+        ? Math.max(2.6, this.standingHeight * 2.05)
+        : Math.max(2.15, this.standingHeight * 1.85);
+      const targetCameraPosition = eyePosition.clone().addScaledVector(viewDirection, -followDistance);
+      targetCameraPosition.y += this.standingHeight * (this.mountedBike ? 0.17 : 0.13);
+      this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 10));
+      this.camera.lookAt(focusTarget);
+    } else {
+      const followDistance = this.mountedBike
+        ? Math.max(7.2, this.standingHeight * 4.2)
+        : Math.max(5.8, this.standingHeight * 3.9);
+      const targetCameraPosition = eyePosition.clone().addScaledVector(viewDirection, -followDistance);
+      targetCameraPosition.y += this.standingHeight * (this.mountedBike ? 1.3 : 1.18);
+      this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 8));
+      this.camera.lookAt(focusTarget);
+    }
+
+    this.updateAnimation(deltaSeconds);
+    this.setStatus(this.resolveStatusMessage(translation));
+
+    this.gameplayRuntime.updateActor({
+      height: this.standingHeight,
+      id: "player",
+      position: vec3(translation.x, translation.y, translation.z),
+      radius: this.radius,
+      tags: ["player"]
+    });
+  }
+
+  updateBeforeStep(deltaSeconds: number) {
+    this.jumpGroundLockRemaining = Math.max(0, this.jumpGroundLockRemaining - deltaSeconds);
+    const translation = this.body.translation();
+    const linearVelocity = this.body.linvel();
+    const groundedHit = this.jumpGroundLockRemaining > 0 ? undefined : this.resolveGroundHit(translation);
+    const grounded = groundedHit !== undefined;
+
+    this.resolveBikeInteraction(translation);
+
+    if (this.mountedBike) {
+      this.resolveMountedVelocity(deltaSeconds);
+    } else {
+      this.resolveOnFootVelocity(deltaSeconds);
+    }
+
+    if (groundedHit?.collider.parent()) {
+      const supportBody = groundedHit.collider.parent();
+
+      if (supportBody) {
+        const velocity = supportBody.linvel();
+        this.supportVelocity.set(velocity.x, velocity.y, velocity.z);
+      }
+    } else {
+      this.supportVelocity.set(0, 0, 0);
+    }
+
+    const planarRate = this.resolvePlanarVelocityRate(grounded, this.targetPlanarVelocity.lengthSq() > 0);
+    this.planarVelocity.lerp(this.targetPlanarVelocity, 1 - Math.exp(-deltaSeconds * planarRate));
+
+    this.body.setLinvel(
+      {
+        x: this.planarVelocity.x + this.supportVelocity.x,
+        y: grounded && linearVelocity.y <= this.supportVelocity.y ? this.supportVelocity.y : linearVelocity.y,
+        z: this.planarVelocity.z + this.supportVelocity.z
+      },
+      true
+    );
+
+    if (this.jumpQueued) {
+      if (!this.mountedBike && this.sceneSettings.player.canJump && grounded) {
+        const gravityMagnitude = Math.max(
+          0.001,
+          Math.hypot(
+            this.sceneSettings.world.gravity.x,
+            this.sceneSettings.world.gravity.y,
+            this.sceneSettings.world.gravity.z
+          )
+        );
+        const currentVelocity = this.body.linvel();
+        this.body.setLinvel(
+          {
+            x: currentVelocity.x,
+            y: this.supportVelocity.y + Math.sqrt(2 * gravityMagnitude * this.sceneSettings.player.jumpHeight),
+            z: currentVelocity.z
+          },
+          true
+        );
+        this.jumpGroundLockRemaining = JUMP_GROUND_LOCK_SECONDS;
+      }
+
+      this.jumpQueued = false;
+    }
+  }
+
+  private async initializeAnimatedCharacter() {
+    const bundleDefinition = animations.player;
+
+    if (!bundleDefinition) {
+      throw new Error('Missing "player" animation bundle.');
+    }
+
+    const bundle = await bundleDefinition.source.load();
+    const character = await bundle.loadCharacterAsset();
+
+    if (!character) {
+      throw new Error('Animation bundle "player" is missing a character asset.');
+    }
+
+    const clips = await bundle.loadGraphClipAssets(character.skeleton);
+    const animator = createAnimatorInstance({
+      clips,
+      graph: bundle.artifact.graph,
+      rig: bundle.rig ?? character.rig
+    });
+
+    this.animationAnimator = animator;
+    this.animationDisplayPose = createPoseBufferFromRig(animator.rig);
+    const animationObject = character.root;
+    this.animationObject = animationObject;
+    animationObject.rotation.y = Math.PI;
+    const skeletonSet = new Set<Skeleton>();
+    animationObject.traverse((child: Object3D) => {
+      const renderCandidate = child as Object3D & {
+        castShadow?: boolean;
+        frustumCulled?: boolean;
+        receiveShadow?: boolean;
+      };
+      const skinnedCandidate = child as Object3D & {
+        isSkinnedMesh?: boolean;
+        skeleton?: Skeleton;
+      };
+
+      if (child instanceof Bone) {
+        this.animationBonesByName.set(child.name, child);
+      }
+
+      if (skinnedCandidate.isSkinnedMesh === true && skinnedCandidate.skeleton) {
+        skeletonSet.add(skinnedCandidate.skeleton);
+      }
+
+      if ("castShadow" in renderCandidate) {
+        renderCandidate.castShadow = true;
+      }
+
+      if ("receiveShadow" in renderCandidate) {
+        renderCandidate.receiveShadow = true;
+      }
+
+      if ("frustumCulled" in renderCandidate) {
+        renderCandidate.frustumCulled = false;
+      }
+    });
+    this.animationSkeletons = Array.from(skeletonSet);
+    this.mountedCounterTiltBones = Array.from(this.animationBonesByName.values()).filter((bone) =>
+      /spine|chest|neck/i.test(bone.name)
+    );
+    this.mountedHandleBones = Array.from(this.animationBonesByName.values()).filter((bone) =>
+      /shoulder|arm|forearm|hand/i.test(bone.name)
+    );
+
+    const initialBounds = new Box3().setFromObject(animationObject);
+    const initialSize = initialBounds.getSize(new Vector3());
+    const rawHeight = Math.max(initialSize.y, 0.001);
+    this.animationScale = (this.standingHeight / rawHeight) * 0.98;
+    animationObject.scale.setScalar(this.animationScale);
+    animationObject.updateMatrixWorld(true);
+
+    const fittedBounds = new Box3().setFromObject(animationObject);
+    const fittedCenter = fittedBounds.getCenter(new Vector3());
+    this.animationBaseOffset.set(
+      -fittedCenter.x,
+      -this.footOffset - fittedBounds.min.y,
+      -fittedCenter.z
+    );
+    this.syncAnimationOffset();
+    this.visualRoot.add(animationObject);
+
+    this.animationAnimator.setInt("mode", 0);
+    this.animationAnimator.setFloat("speed", 0);
+    this.updateAnimation(0);
+  }
+
+  private axis(primary: string, secondary: string) {
+    return this.keyState.has(primary) || this.keyState.has(secondary) ? 1 : 0;
+  }
+
+  private initializeMobileControls() {
+    const shell = this.domElement.parentElement;
+
+    if (!shell) {
+      return;
+    }
+
+    const controlsRoot = document.createElement("div");
+    controlsRoot.className = "touch-controls";
+    controlsRoot.dataset.touchControl = "true";
+
+    const joystickZone = document.createElement("div");
+    joystickZone.className = "touch-joystick";
+    joystickZone.dataset.touchControl = "true";
+
+    const actionStack = document.createElement("div");
+    actionStack.className = "touch-actions";
+    actionStack.dataset.touchControl = "true";
+
+    const wheelieButton = document.createElement("button");
+    wheelieButton.className = "touch-action touch-action-wheelie";
+    wheelieButton.dataset.touchControl = "true";
+    wheelieButton.type = "button";
+    wheelieButton.textContent = "Wheelie";
+
+    const bikeButton = document.createElement("button");
+    bikeButton.className = "touch-action touch-action-bike";
+    bikeButton.dataset.touchControl = "true";
+    bikeButton.type = "button";
+    bikeButton.textContent = "Bike";
+
+    actionStack.append(wheelieButton, bikeButton);
+    controlsRoot.append(joystickZone, actionStack);
+    shell.append(controlsRoot);
+
+    this.mobileControlsRoot = controlsRoot;
+    this.mobileJoystickZone = joystickZone;
+    this.mobileWheelieButton = wheelieButton;
+    this.mobileBikeButton = bikeButton;
+    this.mobileJoystick = nipplejs.create({
+      color: "#d8ecff",
+      fadeTime: 120,
+      maxNumberOfJoysticks: 1,
+      mode: "static",
+      position: { left: "50%", top: "50%" },
+      size: 120,
+      zone: joystickZone
+    });
+    this.mobileJoystick.on("move", (event: { data: { vector: { x: number; y: number } } }) => {
+      this.mobileMoveX = event.data.vector.x;
+      this.mobileMoveY = event.data.vector.y;
+    });
+    this.mobileJoystick.on("end hidden", () => {
+      this.mobileMoveX = 0;
+      this.mobileMoveY = 0;
+    });
+
+    bikeButton.addEventListener("pointerdown", this.handleMobileBikeButtonDown);
+    wheelieButton.addEventListener("pointerdown", this.handleMobileWheelieDown);
+    wheelieButton.addEventListener("pointerup", this.handleMobileWheelieUp);
+    wheelieButton.addEventListener("pointercancel", this.handleMobileWheelieUp);
+  }
+
+  private disposeMobileControls() {
+    const shell = this.domElement.parentElement;
+    this.mobileJoystick?.destroy();
+    this.mobileJoystick = null;
+
+    if (this.mobileBikeButton) {
+      this.mobileBikeButton.removeEventListener("pointerdown", this.handleMobileBikeButtonDown);
+    }
+
+    if (this.mobileWheelieButton) {
+      this.mobileWheelieButton.removeEventListener("pointerdown", this.handleMobileWheelieDown);
+      this.mobileWheelieButton.removeEventListener("pointerup", this.handleMobileWheelieUp);
+      this.mobileWheelieButton.removeEventListener("pointercancel", this.handleMobileWheelieUp);
+    }
+
+    this.mobileControlsRoot?.remove();
+    this.mobileControlsRoot = null;
+    this.mobileJoystickZone = null;
+    this.mobileBikeButton = null;
+    this.mobileWheelieButton = null;
+    this.mobileMoveX = 0;
+    this.mobileMoveY = 0;
+    this.mobileOrbitPointerId = null;
+    this.mobileWheelieHeld = false;
+  }
+
+  private getMoveRightInput() {
+    return MathUtils.clamp(this.mobileMoveX + this.axis("KeyD", "ArrowRight") - this.axis("KeyA", "ArrowLeft"), -1, 1);
+  }
+
+  private getMoveForwardInput() {
+    return MathUtils.clamp(this.mobileMoveY + this.axis("KeyW", "ArrowUp") - this.axis("KeyS", "ArrowDown"), -1, 1);
+  }
+
+  private isRunning() {
+    return this.keyState.has("ShiftLeft") || this.keyState.has("ShiftRight");
+  }
+
+  private resolveBikeDistance(translation: ReturnType<RAPIER.RigidBody["translation"]>) {
+    if (!this.bike) {
+      return Number.POSITIVE_INFINITY;
+    }
+
+    return Math.hypot(
+      translation.x - this.bike.object.position.x,
+      translation.z - this.bike.object.position.z
+    );
+  }
+
+  private resolveBikeInteraction(translation: ReturnType<RAPIER.RigidBody["translation"]>) {
+    if (!this.interactQueued) {
+      return;
+    }
+
+    this.interactQueued = false;
+
+    if (this.mountedBike) {
+      this.dismountBike(translation);
+      return;
+    }
+
+    if (!this.bike || this.resolveBikeDistance(translation) > this.bike.mountRadius) {
+      return;
+    }
+
+    this.mountedBike = this.bike;
+    this.planarVelocity.set(0, 0, 0);
+    this.targetPlanarVelocity.set(0, 0, 0);
+    this.animationRootCompensation.set(0, 0, 0);
+    this.animationModeValue = 2;
+    this.mountedBikeLean = 0;
+    this.mountedBikePitch = 0;
+    this.mountedSurfacePitch = 0;
+    this.mountedSurfaceRoll = 0;
+    this.mountedBikeWheelie = 0;
+    this.mountedThrottleInput = 0;
+    this.mountedTurnInput = 0;
+    this.syncMountedBike(translation, 0);
+  }
+
+  private dismountBike(translation: ReturnType<RAPIER.RigidBody["translation"]>) {
+    if (!this.mountedBike) {
+      return;
+    }
+
+    const right = scratchRight.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const bikeX = translation.x + right.x * 1.35;
+    const bikeZ = translation.z + right.z * 1.35;
+    const groundY = this.resolveSurfaceContact(bikeX, bikeZ, translation.y + 2).y;
+    this.mountedBike.object.position.set(
+      bikeX,
+      groundY + this.mountedBike.groundOffset + BIKE_MOUNT_CLEARANCE,
+      bikeZ
+    );
+    this.mountedBike.object.rotation.set(0, this.yaw + BIKE_MODEL_YAW_OFFSET, 0);
+    this.mountedBike = null;
+    this.mountedBikeLean = 0;
+    this.mountedBikePitch = 0;
+    this.mountedSurfacePitch = 0;
+    this.mountedSurfaceRoll = 0;
+    this.mountedBikeWheelie = 0;
+    this.mountedThrottleInput = 0;
+    this.mountedTurnInput = 0;
+    this.planarVelocity.multiplyScalar(0.35);
+    this.targetPlanarVelocity.set(0, 0, 0);
+    this.animationRootCompensation.set(0, 0, 0);
+    this.animationModeValue = 0;
+  }
+
+  private resolveMountedVelocity(deltaSeconds: number) {
+    const turnInput = this.getMoveRightInput();
+    this.yaw -= turnInput * BIKE_TURN_SPEED * deltaSeconds;
+    this.mountedTurnInput = turnInput;
+
+    const throttle = this.getMoveForwardInput();
+    this.mountedThrottleInput = throttle;
+    const forward = scratchForward.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    const cruiseSpeed = Math.max(
+      this.sceneSettings.player.runningSpeed + BIKE_CRUISE_SPEED_BONUS,
+      this.sceneSettings.player.movementSpeed + 4
+    );
+    const boostedSpeed = Math.max(cruiseSpeed + 2.5, this.sceneSettings.player.runningSpeed * 1.45);
+    const maxSpeed = this.isTouchDevice ? boostedSpeed : this.isRunning() ? boostedSpeed : cruiseSpeed;
+    const signedSpeed = throttle >= 0 ? throttle * maxSpeed : throttle * maxSpeed * BIKE_REVERSE_MULTIPLIER;
+    const normalizedSpeed = MathUtils.clamp(this.planarVelocity.length() / Math.max(maxSpeed, 0.001), 0, 1);
+    const wheelieHeld = (this.keyState.has("Space") || this.mobileWheelieHeld) && throttle > 0;
+    const targetWheelie = wheelieHeld ? 0.12 + normalizedSpeed * 0.2 : 0;
+    const targetLean = -turnInput * (0.045 + normalizedSpeed * 0.16);
+    const targetPitch =
+      -targetWheelie - Math.max(throttle, 0) * normalizedSpeed * 0.06 + Math.max(-throttle, 0) * 0.08;
+
+    this.mountedBikeWheelie = damp(this.mountedBikeWheelie, targetWheelie, BIKE_WHEELIE_RESPONSE, deltaSeconds);
+    this.mountedBikeLean = damp(this.mountedBikeLean, targetLean, BIKE_ROLL_RESPONSE, deltaSeconds);
+    this.mountedBikePitch = damp(
+      this.mountedBikePitch,
+      targetPitch - this.mountedBikeWheelie,
+      BIKE_PITCH_RESPONSE,
+      deltaSeconds
+    );
+
+    this.targetPlanarVelocity.copy(forward).multiplyScalar(signedSpeed);
+  }
+
+  private resolveOnFootVelocity(deltaSeconds: number) {
+    const walkSpeed = this.sceneSettings.player.movementSpeed * WALK_SPEED_MULTIPLIER;
+    const runSpeed = this.sceneSettings.player.runningSpeed * RUN_SPEED_MULTIPLIER;
+    const viewDirection = resolveViewDirection(this.orbitYaw, this.pitch, scratchViewDirection);
+    const forward = scratchForward.set(viewDirection.x, 0, viewDirection.z);
+
+    if (forward.lengthSq() > 0) {
+      forward.normalize();
+    } else {
+      forward.set(0, 0, -1);
+    }
+
+    const right = scratchRight.set(-forward.z, 0, forward.x).normalize();
+    const moveRight = this.getMoveRightInput();
+    const moveForward = this.getMoveForwardInput();
+    const inputMagnitude = Math.min(Math.hypot(moveRight, moveForward), 1);
+    const maxSpeed =
+      this.isTouchDevice && this.sceneSettings.player.canRun
+        ? runSpeed
+        : this.sceneSettings.player.canRun && this.isRunning()
+          ? runSpeed
+          : walkSpeed;
+    this.targetPlanarVelocity
+      .set(0, 0, 0)
+      .addScaledVector(right, moveRight)
+      .addScaledVector(forward, moveForward);
+
+    if (this.targetPlanarVelocity.lengthSq() > 0) {
+      this.targetPlanarVelocity.normalize().multiplyScalar(maxSpeed * inputMagnitude);
+      this.yaw = dampAngle(this.yaw, yawFromVector(this.targetPlanarVelocity), 14, deltaSeconds);
+    }
+  }
+
+  private resolvePlanarVelocityRate(grounded: boolean, hasMovementInput: boolean) {
+    if (this.mountedBike) {
+      return hasMovementInput ? MOUNTED_ACCELERATION : MOUNTED_DECELERATION;
+    }
+
+    if (!grounded) {
+      return hasMovementInput ? FOOT_AIR_ACCELERATION : FOOT_AIR_DECELERATION;
+    }
+
+    return hasMovementInput ? FOOT_ACCELERATION : FOOT_DECELERATION;
+  }
+
+  private resolveAnimationSpeedParameter() {
+    if (this.mountedBike) {
+      return 1;
+    }
+
+    const locomotionSpeed = this.planarVelocity.length();
+    const walkSpeed = Math.max(this.sceneSettings.player.movementSpeed * WALK_SPEED_MULTIPLIER, 0.001);
+    const runSpeed = Math.max(this.sceneSettings.player.runningSpeed * RUN_SPEED_MULTIPLIER, walkSpeed + 0.001);
+
+    if (locomotionSpeed < 0.01) {
+      return 0;
+    }
+
+    if (locomotionSpeed <= walkSpeed) {
+      return MathUtils.clamp(locomotionSpeed / walkSpeed, 0, 1);
+    }
+
+    return MathUtils.clamp(1 + (locomotionSpeed - walkSpeed) / (runSpeed - walkSpeed), 1, 2);
+  }
+
+  private updateAnimation(deltaSeconds: number) {
+    if (!this.animationAnimator || !this.animationDisplayPose || this.animationBonesByName.size === 0) {
+      return;
+    }
+
+    const nextMode = this.mountedBike ? 2 : 0;
+
+    if (nextMode !== this.animationModeValue) {
+      this.animationModeValue = nextMode;
+      this.animationRootCompensation.set(0, 0, 0);
+    }
+
+    const targetSpeed = this.resolveAnimationSpeedParameter();
+    const playbackRate = this.resolveAnimationPlaybackRate(targetSpeed);
+    const blendRate = this.mountedBike ? 10 : targetSpeed > 1 ? 8 : 12;
+    this.animationSpeedValue = damp(this.animationSpeedValue, targetSpeed, blendRate, deltaSeconds);
+
+    this.animationAnimator.setInt("mode", this.animationModeValue);
+    this.animationAnimator.setFloat("speed", this.animationSpeedValue);
+    const result = this.animationAnimator.update(deltaSeconds * playbackRate);
+    copyPose(result.pose, this.animationDisplayPose);
+    forceBoneTranslationToBindPose(
+      this.animationDisplayPose.translations,
+      this.animationAnimator.rig.bindTranslations,
+      this.animationAnimator.rig.rootBoneIndex
+    );
+    applyPoseBufferToBoneHierarchy(
+      this.animationDisplayPose,
+      this.animationAnimator.rig.boneNames,
+      this.animationBonesByName,
+      this.animationSkeletons
+    );
+    this.applyMountedPoseAdjustments();
+
+    this.animationRootCompensation.x -= result.rootMotion.translation[0] * this.animationScale;
+    this.animationRootCompensation.z -= result.rootMotion.translation[2] * this.animationScale;
+
+    if (!this.mountedBike && this.planarVelocity.lengthSq() < 0.0025) {
+      this.animationRootCompensation.lerp(scratchZeroVector, 1 - Math.exp(-deltaSeconds * 12));
+    }
+
+    this.syncAnimationOffset();
+  }
+
+  private resolveAnimationPlaybackRate(targetSpeed: number) {
+    const locomotionSpeed = this.planarVelocity.length();
+
+    if (this.mountedBike) {
+      return MathUtils.clamp(Math.max(locomotionSpeed, 1) / 2.4, 1, 3.25);
+    }
+
+    if (locomotionSpeed < 0.05) {
+      return 1;
+    }
+
+    // The graph thresholds are 0/1/2, but the controller moves much faster in world units.
+    // Scale clip playback separately so footsteps keep up with actual motion.
+    return MathUtils.clamp((locomotionSpeed / Math.max(targetSpeed, 1)) * ON_FOOT_ANIMATION_PLAYBACK_SCALE, 1, 6);
+  }
+
+  private syncAnimationOffset() {
+    if (!this.animationObject) {
+      return;
+    }
+
+    this.animationObject.position.copy(this.animationBaseOffset).add(this.animationRootCompensation);
+
+    if (this.mountedBike) {
+      this.animationObject.position.y += this.mountedBikeWheelie * 0.4;
+    }
+  }
+
+  private syncMountedBike(translation: ReturnType<RAPIER.RigidBody["translation"]>, deltaSeconds: number) {
+    if (!this.mountedBike) {
+      return;
+    }
+
+    const forward = scratchYawForward.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    const wheelieForwardShift = this.mountedBikeWheelie * BIKE_WHEELIE_FORWARD_SHIFT;
+    const rootX = translation.x + forward.x * (BIKE_MOUNT_OFFSET + wheelieForwardShift);
+    const rootZ = translation.z + forward.z * (BIKE_MOUNT_OFFSET + wheelieForwardShift);
+    scratchYawQuaternion.setFromEuler(scratchYawEuler.set(0, this.yaw + BIKE_MODEL_YAW_OFFSET, 0, "YXZ"));
+    const rearAnchor = this.mountedBike.rearWheelAnchor;
+    const frontAnchor = this.mountedBike.frontWheelAnchor;
+    const rearSample = scratchRearSample.copy(rearAnchor).applyQuaternion(scratchYawQuaternion);
+    const frontSample = scratchFrontSample.copy(frontAnchor).applyQuaternion(scratchYawQuaternion);
+    const startY = translation.y + Math.max(this.standingHeight * 4, 4);
+    const rearContact = this.resolveSurfaceContact(rootX + rearSample.x, rootZ + rearSample.z, startY);
+    const frontContact = this.resolveSurfaceContact(rootX + frontSample.x, rootZ + frontSample.z, startY);
+    const rearCenterY = rearContact.y + this.mountedBike.wheelRadius;
+    const frontCenterY = frontContact.y + this.mountedBike.wheelRadius;
+    const wheelbase = Math.max(
+      0.001,
+      Math.hypot(frontContact.position.x - rearContact.position.x, frontContact.position.z - rearContact.position.z)
+    );
+    const surfacePitch = Math.atan2(frontCenterY - rearCenterY, wheelbase);
+    const surfaceNormal = scratchSurfaceNormal
+      .copy(rearContact.normal)
+      .add(frontContact.normal)
+      .normalize();
+    const localNormal = scratchLocalNormal.copy(surfaceNormal).applyQuaternion(scratchInverseYaw.copy(scratchYawQuaternion).invert());
+    const surfaceRoll = Math.atan2(localNormal.x, Math.max(localNormal.y, 0.001));
+    this.mountedSurfacePitch = surfacePitch;
+    this.mountedSurfaceRoll = surfaceRoll;
+    const riderY = translation.y - this.footOffset + this.mountedBike.groundOffset + BIKE_MOUNT_CLEARANCE;
+    scratchBikeQuaternion.setFromEuler(
+      scratchBikeEuler.set(
+        this.mountedSurfacePitch + this.mountedBikePitch,
+        this.yaw + BIKE_MODEL_YAW_OFFSET,
+        this.mountedSurfaceRoll + this.mountedBikeLean,
+        "YXZ"
+      )
+    );
+    const rotatedRearAnchor = scratchRotatedRearAnchor.copy(rearAnchor).applyQuaternion(scratchBikeQuaternion);
+    this.mountedBike.object.position
+      .set(rearContact.position.x, rearCenterY, rearContact.position.z)
+      .sub(rotatedRearAnchor);
+    this.mountedBike.object.position.y = Math.max(this.mountedBike.object.position.y, riderY);
+    this.mountedBike.object.quaternion.copy(scratchBikeQuaternion);
+
+    if (this.mountedBike.wheels.length > 0) {
+      const signedSpeed = forward.dot(this.planarVelocity);
+      const wheelSpin = signedSpeed / Math.max(this.mountedBike.wheelRadius, 0.05);
+
+      for (const wheel of this.mountedBike.wheels) {
+        wheel.rotateX(-wheelSpin * deltaSeconds);
+      }
+    }
+  }
+
+  private resolveStatusMessage(translation: ReturnType<RAPIER.RigidBody["translation"]>) {
+    if (this.isTouchDevice) {
+      return "";
+    }
+
+    if (this.mountedBike) {
+      return "Press F to get off the bike";
+    }
+
+    if (!this.bike) {
+      return "";
+    }
+
+    return this.resolveBikeDistance(translation) <= this.bike.mountRadius ? "Press F to ride the bike" : "";
+  }
+
+  private resolveGroundHit(translation: ReturnType<RAPIER.RigidBody["translation"]>) {
+    const ray = new RAPIER.Ray(
+      {
+        x: translation.x,
+        y: translation.y - this.footOffset + GROUND_PROBE_HEIGHT,
+        z: translation.z
+      },
+      { x: 0, y: -1, z: 0 }
+    );
+
+    const hit = this.world.castRayAndGetNormal(
+      ray,
+      GROUND_PROBE_DISTANCE,
+      false,
+      undefined,
+      undefined,
+      undefined,
+      this.body
+    );
+
+    if (!hit || hit.normal.y < GROUND_MIN_NORMAL_Y) {
+      return undefined;
+    }
+
+    return hit;
+  }
+
+  private resolveSurfaceContact(x: number, z: number, startY: number) {
+    const ray = new RAPIER.Ray({ x, y: startY, z }, { x: 0, y: -1, z: 0 });
+    const hit = this.world.castRayAndGetNormal(ray, 20, false, undefined, undefined, undefined, this.body);
+
+    if (!hit) {
+      return {
+        normal: new Vector3(0, 1, 0),
+        position: new Vector3(x, startY, z),
+        y: startY
+      };
+    }
+
+    const y = startY - hit.timeOfImpact;
+    return {
+      normal: new Vector3(hit.normal.x, hit.normal.y, hit.normal.z),
+      position: new Vector3(x, y, z),
+      y
+    };
+  }
+
+  private applyMountedPoseAdjustments() {
+    if (!this.mountedBike || this.mountedCounterTiltBones.length === 0) {
+      return;
+    }
+
+    const leanAmount = -(this.mountedSurfaceRoll + this.mountedBikeLean) * 0.22;
+    const pitchAmount = -(this.mountedSurfacePitch + this.mountedBikePitch) * 0.12;
+    scratchLeanQuaternion.setFromAxisAngle(scratchForwardAxis, leanAmount);
+    scratchPitchQuaternion.setFromAxisAngle(scratchRightAxis, pitchAmount);
+
+    for (const bone of this.mountedCounterTiltBones) {
+      bone.quaternion.multiply(scratchLeanQuaternion).multiply(scratchPitchQuaternion);
+      bone.updateMatrix();
+    }
+
+    if (this.mountedHandleBones.length > 0) {
+      const handleLeanAmount = this.mountedBikeLean * 0.38;
+      const handlePitchAmount = this.mountedBikePitch * 0.24;
+      scratchLeanQuaternion.setFromAxisAngle(scratchForwardAxis, handleLeanAmount);
+      scratchPitchQuaternion.setFromAxisAngle(scratchRightAxis, handlePitchAmount);
+
+      for (const bone of this.mountedHandleBones) {
+        bone.quaternion.multiply(scratchLeanQuaternion).multiply(scratchPitchQuaternion);
+        bone.updateMatrix();
+      }
+    }
+
+    [...this.mountedCounterTiltBones, ...this.mountedHandleBones]
+      .filter((bone) => !(bone.parent instanceof Bone))
+      .forEach((bone) => bone.updateMatrixWorld(true));
+
+    this.animationSkeletons.forEach((skeleton) => skeleton.update());
+  }
+
+  private readonly handleCanvasClick = () => {
+    if (this.isTouchDevice) {
+      return;
+    }
+
+    if (document.pointerLockElement === this.domElement) {
+      return;
+    }
+
+    void this.domElement.requestPointerLock();
+  };
+
+  private readonly handleKeyDown = (event: KeyboardEvent) => {
+    if (isTextInputTarget(event.target)) {
+      return;
+    }
+
+    this.keyState.add(event.code);
+
+    if (event.repeat) {
+      return;
+    }
+
+    if (event.code === "Space") {
+      this.jumpQueued = true;
+      event.preventDefault();
+    }
+
+    if (event.code === BIKE_INTERACT_KEY) {
+      this.interactQueued = true;
+      event.preventDefault();
+    }
+  };
+
+  private readonly handleKeyUp = (event: KeyboardEvent) => {
+    this.keyState.delete(event.code);
+  };
+
+  private readonly handleMouseMove = (event: MouseEvent) => {
+    if (this.isTouchDevice) {
+      return;
+    }
+
+    this.pointerLocked = document.pointerLockElement === this.domElement;
+
+    if (!this.pointerLocked) {
+      return;
+    }
+
+    this.orbitYaw -= event.movementX * 0.0024;
+    this.pitch = MathUtils.clamp(
+      this.pitch - event.movementY * 0.0018,
+      this.cameraMode === "fps" ? -1.35 : -1.25,
+      this.cameraMode === "fps" ? 1.35 : this.cameraMode === "top-down" ? -0.12 : 0.4
+    );
+  };
+
+  private readonly handleWindowBlur = () => {
+    this.keyState.clear();
+    this.interactQueued = false;
+    this.jumpQueued = false;
+    this.mobileMoveX = 0;
+    this.mobileMoveY = 0;
+    this.mobileOrbitPointerId = null;
+    this.mobileWheelieHeld = false;
+    this.releasePointerLock();
+  };
+
+  private readonly handleMobileBikeButtonDown = (event: PointerEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    this.interactQueued = true;
+  };
+
+  private readonly handleMobileWheelieDown = (event: PointerEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    this.mobileWheelieHeld = true;
+    (event.currentTarget as HTMLElement | null)?.setPointerCapture?.(event.pointerId);
+  };
+
+  private readonly handleMobileWheelieUp = (event: PointerEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    this.mobileWheelieHeld = false;
+    (event.currentTarget as HTMLElement | null)?.releasePointerCapture?.(event.pointerId);
+  };
+
+}
+
+function defaultPitchForCameraMode(cameraMode: SceneSettings["player"]["cameraMode"]) {
+  if (cameraMode === "fps") {
+    return 0;
+  }
+
+  if (cameraMode === "third-person") {
+    return -0.22;
+  }
+
+  return -0.78;
+}
+
+function damp(current: number, target: number, rate: number, deltaSeconds: number) {
+  return MathUtils.lerp(current, target, 1 - Math.exp(-deltaSeconds * rate));
+}
+
+function dampAngle(current: number, target: number, rate: number, deltaSeconds: number) {
+  const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
+  return current + delta * (1 - Math.exp(-deltaSeconds * rate));
+}
+
+function isTextInputTarget(target: EventTarget | null) {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || target.tagName === "INPUT" || target.tagName === "TEXTAREA")
+  );
+}
+
+function isLikelyTouchDevice() {
+  return (
+    typeof window !== "undefined" &&
+    ("ontouchstart" in window ||
+      navigator.maxTouchPoints > 0 ||
+      window.matchMedia?.("(hover: none), (pointer: coarse)").matches === true)
+  );
+}
+
+function resolveViewDirection(yaw: number, pitch: number, target: Vector3) {
+  target.set(
+    -Math.sin(yaw) * Math.cos(pitch),
+    Math.sin(pitch),
+    -Math.cos(yaw) * Math.cos(pitch)
+  );
+
+  return target.normalize();
+}
+
+function yawFromVector(vector: Vector3) {
+  return Math.atan2(-vector.x, -vector.z);
+}
+
+const scratchFocusTarget = new Vector3();
+const scratchBikeEuler = new Euler(0, 0, 0, "YXZ");
+const scratchBikeQuaternion = new Quaternion();
+const scratchForward = new Vector3();
+const scratchForwardAxis = new Vector3(0, 0, 1);
+const scratchLeanQuaternion = new Quaternion();
+const scratchLocalNormal = new Vector3();
+const scratchPitchQuaternion = new Quaternion();
+const scratchRearAnchorOffset = new Vector3();
+const scratchRearSample = new Vector3();
+const scratchRearPivotWorld = new Vector3();
+const scratchRight = new Vector3();
+const scratchRightAxis = new Vector3(1, 0, 0);
+const scratchRotatedRearAnchor = new Vector3();
+const scratchFrontSample = new Vector3();
+const scratchInverseYaw = new Quaternion();
+const scratchSurfaceNormal = new Vector3();
+const scratchViewDirection = new Vector3();
+const scratchYawEuler = new Euler(0, 0, 0, "YXZ");
+const scratchYawForward = new Vector3();
+const scratchYawQuaternion = new Quaternion();
+const scratchZeroVector = new Vector3();
+
+function forceBoneTranslationToBindPose(
+  translations: Float32Array,
+  bindTranslations: Float32Array,
+  boneIndex: number
+) {
+  const offset = boneIndex * 3;
+  translations[offset] = bindTranslations[offset]!;
+  translations[offset + 1] = bindTranslations[offset + 1]!;
+  translations[offset + 2] = bindTranslations[offset + 2]!;
+}
+
+function applyPoseBufferToBoneHierarchy(
+  pose: PoseBuffer,
+  rigBoneNames: readonly string[],
+  bonesByName: ReadonlyMap<string, Bone>,
+  skeletons: readonly Skeleton[]
+) {
+  const updatedBones: Bone[] = [];
+
+  rigBoneNames.forEach((boneName, rigBoneIndex) => {
+    const bone = bonesByName.get(boneName);
+
+    if (!bone) {
+      return;
+    }
+
+    const vectorOffset = rigBoneIndex * 3;
+    const quaternionOffset = rigBoneIndex * 4;
+    bone.position.set(
+      pose.translations[vectorOffset]!,
+      pose.translations[vectorOffset + 1]!,
+      pose.translations[vectorOffset + 2]!
+    );
+    bone.quaternion.set(
+      pose.rotations[quaternionOffset]!,
+      pose.rotations[quaternionOffset + 1]!,
+      pose.rotations[quaternionOffset + 2]!,
+      pose.rotations[quaternionOffset + 3]!
+    );
+    bone.scale.set(
+      pose.scales[vectorOffset]!,
+      pose.scales[vectorOffset + 1]!,
+      pose.scales[vectorOffset + 2]!
+    );
+    bone.updateMatrix();
+    updatedBones.push(bone);
+  });
+
+  updatedBones
+    .filter((bone) => !(bone.parent instanceof Bone))
+    .forEach((bone) => bone.updateMatrixWorld(true));
+
+  skeletons.forEach((skeleton) => skeleton.update());
+}

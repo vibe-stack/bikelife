@@ -1,0 +1,177 @@
+:root {
+  color: #f4f7fb;
+  background: #05070a;
+  font-family:
+    "IBM Plex Sans",
+    "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  overflow: hidden;
+  background: #05070a;
+}
+
+canvas {
+  display: block;
+}
+
+.game-shell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  touch-action: none;
+}
+
+.game-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: #000;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 180ms ease,
+    visibility 180ms ease;
+}
+
+.game-loading.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.game-loading.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.game-loading-inner {
+  width: min(24rem, calc(100vw - 3rem));
+  display: grid;
+  gap: 0.7rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.game-loading-title {
+  color: #f5f7fb;
+  font-size: clamp(2.2rem, 8vw, 4.8rem);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  line-height: 0.95;
+  text-indent: 0.2em;
+}
+
+.game-loading-subtitle {
+  color: rgba(245, 247, 251, 0.72);
+  font-size: 0.95rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.game-loading-bar {
+  width: 100%;
+  height: 0.6rem;
+  margin-top: 1.2rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.game-loading-bar-fill {
+  width: 100%;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, #f4f7fb, #86c5ff);
+  transition: transform 180ms ease;
+}
+
+.game-loading-label {
+  margin-top: 0.25rem;
+  color: rgba(245, 247, 251, 0.78);
+  font-size: 0.82rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.game-status {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 10;
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.75rem;
+  background: rgba(8, 12, 18, 0.78);
+  color: #f4f7fb;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.touch-joystick {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  width: 9.5rem;
+  height: 9.5rem;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 50%, rgba(112, 179, 255, 0.16), rgba(7, 12, 19, 0.04));
+  border: 1px solid rgba(185, 219, 255, 0.18);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.touch-actions {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.touch-action {
+  min-width: 5.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(220, 236, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(8, 12, 18, 0.82);
+  color: #f4f7fb;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.touch-action:active {
+  transform: scale(0.97);
+}
