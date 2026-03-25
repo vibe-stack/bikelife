@@ -56,9 +56,15 @@ const JUMP_GROUND_LOCK_SECONDS = 0.12;
 const MOUNTED_CAMERA_EYE_RESPONSE = 6.4;
 const MOUNTED_CAMERA_FOCUS_RESPONSE = 7.2;
 const MOBILE_BIKE_BOOST_THRESHOLD = 0.96;
-const MOBILE_JOYSTICK_DEADZONE = 0.18;
-const MOBILE_JOYSTICK_RESPONSE_EXPONENT = 1.85;
+const MOBILE_BIKE_STEER_SCALE = 0.58;
+const MOBILE_JOYSTICK_HORIZONTAL_DEADZONE = 0.3;
+const MOBILE_JOYSTICK_HORIZONTAL_RESPONSE_EXPONENT = 2.6;
+const MOBILE_JOYSTICK_HORIZONTAL_SCALE = 0.55;
 const MOBILE_JOYSTICK_RUN_THRESHOLD = 0.72;
+const MOBILE_JOYSTICK_VERTICAL_DEADZONE = 0.15;
+const MOBILE_JOYSTICK_VERTICAL_RESPONSE_EXPONENT = 1.75;
+const MOBILE_JOYSTICK_VERTICAL_SCALE = 1.08;
+const MOBILE_TOUCH_YAW_RESPONSE = 8;
 const ON_FOOT_ANIMATION_PLAYBACK_SCALE = 2;
 const PLAYER_SCALE_FACTOR = 0.5;
 const RUN_SPEED_MULTIPLIER = 1.2;
@@ -569,9 +575,20 @@ export class StarterPlayerController {
       size: 120,
       zone: joystickZone
     });
-    this.mobileJoystick.on("move", (event: { data: { vector: { x: number; y: number } } }) => {
-      this.mobileMoveX = shapeTouchAxis(event.data.vector.x);
-      this.mobileMoveY = shapeTouchAxis(event.data.vector.y);
+    this.mobileJoystick.on("move", (event: { data: { force?: number; vector: { x: number; y: number } } }) => {
+      const force = MathUtils.clamp(event.data.force ?? 0, 0, 1);
+      this.mobileMoveX = shapeTouchAxis(
+        event.data.vector.x * force,
+        MOBILE_JOYSTICK_HORIZONTAL_DEADZONE,
+        MOBILE_JOYSTICK_HORIZONTAL_RESPONSE_EXPONENT,
+        MOBILE_JOYSTICK_HORIZONTAL_SCALE
+      );
+      this.mobileMoveY = shapeTouchAxis(
+        event.data.vector.y * force,
+        MOBILE_JOYSTICK_VERTICAL_DEADZONE,
+        MOBILE_JOYSTICK_VERTICAL_RESPONSE_EXPONENT,
+        MOBILE_JOYSTICK_VERTICAL_SCALE
+      );
     });
     this.mobileJoystick.on("end hidden", () => {
       this.mobileMoveX = 0;
@@ -709,7 +726,7 @@ export class StarterPlayerController {
   }
 
   private resolveMountedVelocity(deltaSeconds: number) {
-    const turnInput = -this.getMoveRightInput();
+    const turnInput = -this.getMoveRightInput() * (this.isTouchDevice ? MOBILE_BIKE_STEER_SCALE : 1);
     this.mountedTurnInput = turnInput;
 
     const throttle = this.getMoveForwardInput();
@@ -720,7 +737,6 @@ export class StarterPlayerController {
     );
     const boostedSpeed = Math.max(cruiseSpeed + 2.5, this.sceneSettings.player.runningSpeed * 1.45);
     const maxSpeed = this.isTouchDevice ? boostedSpeed : this.isRunning() ? boostedSpeed : cruiseSpeed;
-    const signedSpeed = throttle >= 0 ? throttle * maxSpeed : throttle * maxSpeed * BIKE_REVERSE_MULTIPLIER;
     const normalizedSpeed = MathUtils.clamp(this.planarVelocity.length() / Math.max(maxSpeed, 0.001), 0, 1);
     const wheelieHeld = (this.keyState.has("Space") || this.mobileWheelieHeld) && throttle > 0;
     const targetWheelie = wheelieHeld ? 0.12 + normalizedSpeed * 0.2 : 0;
@@ -767,7 +783,12 @@ export class StarterPlayerController {
 
     if (this.targetPlanarVelocity.lengthSq() > 0) {
       this.targetPlanarVelocity.normalize().multiplyScalar(maxSpeed * inputMagnitude);
-      this.yaw = dampAngle(this.yaw, yawFromVector(this.targetPlanarVelocity), 14, deltaSeconds);
+      this.yaw = dampAngle(
+        this.yaw,
+        yawFromVector(this.targetPlanarVelocity),
+        this.isTouchDevice ? MOBILE_TOUCH_YAW_RESPONSE : 14,
+        deltaSeconds
+      );
     }
   }
 
@@ -1200,15 +1221,15 @@ function dampAngle(current: number, target: number, rate: number, deltaSeconds: 
   return current + delta * (1 - Math.exp(-deltaSeconds * rate));
 }
 
-function shapeTouchAxis(value: number) {
+function shapeTouchAxis(value: number, deadzone: number, responseExponent: number, outputScale = 1) {
   const magnitude = MathUtils.clamp(Math.abs(value), 0, 1);
 
-  if (magnitude <= MOBILE_JOYSTICK_DEADZONE) {
+  if (magnitude <= deadzone) {
     return 0;
   }
 
-  const normalizedMagnitude = (magnitude - MOBILE_JOYSTICK_DEADZONE) / (1 - MOBILE_JOYSTICK_DEADZONE);
-  const shapedMagnitude = normalizedMagnitude ** MOBILE_JOYSTICK_RESPONSE_EXPONENT;
+  const normalizedMagnitude = (magnitude - deadzone) / (1 - deadzone);
+  const shapedMagnitude = MathUtils.clamp((normalizedMagnitude ** responseExponent) * outputScale, 0, 1);
   return Math.sign(value) * shapedMagnitude;
 }
 

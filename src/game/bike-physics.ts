@@ -44,13 +44,14 @@ const BIKE_AIR_YAW_ACCELERATION = 5.05;
 const BIKE_CENTER_PROBE_HEIGHT = 0.45;
 const BIKE_CENTER_PROBE_MARGIN = 0.55;
 const BIKE_COAST_DECELERATION = 5.5;
-const BIKE_FORWARD_ACCELERATION = 12.5;
-const BIKE_FORWARD_SPEED = 10.5;
-const BIKE_BOOST_SPEED = 13.4;
+const BIKE_FORWARD_ACCELERATION = 17.5;
+const BIKE_FORWARD_SPEED = 12.8;
+const BIKE_BOOST_SPEED = 16.6;
 const BIKE_GROUND_CLIMB_RESPONSE = 34;
 const BIKE_GROUND_CONTACT_GRACE = 0.08;
 const BIKE_GROUND_ALIGN_RESPONSE = 18;
 const BIKE_GROUND_ANGULAR_DAMPING = 12;
+const BIKE_LAUNCH_ACCELERATION_BOOST = 1.7;
 const BIKE_GROUND_NORMAL_MIN_Y = 0.35;
 const BIKE_GROUND_NORMAL_RESPONSE = 10;
 const BIKE_GROUND_POSITION_RESPONSE = 24;
@@ -67,7 +68,7 @@ const BIKE_MAX_GROUNDED_PITCH = 0.24;
 const BIKE_MAX_GROUNDED_ROLL = 0.42;
 const BIKE_MAX_REVERSE_SPEED = 3.8;
 const BIKE_OVERSPEED_DRAG = 1.25;
-const BIKE_REVERSE_ACCELERATION = 8.5;
+const BIKE_REVERSE_ACCELERATION = 11.5;
 const BIKE_REVERSE_DECELERATION = 12.5;
 const BIKE_SEAT_HEIGHT_MULTIPLIER = 1.12;
 const BIKE_SEAT_VERTICAL_OFFSET = 0.05;
@@ -455,7 +456,9 @@ export class BikePhysicsRig {
     } else {
       const slopeForwardDelta = slopeAcceleration.dot(driveForward) * deltaSeconds;
       const slopeSideDelta = slopeAcceleration.dot(driveRight) * deltaSeconds;
-      const forwardAcceleration = throttleInput >= 0 ? BIKE_FORWARD_ACCELERATION : BIKE_REVERSE_ACCELERATION;
+      const launchAccelerationMultiplier = MathUtils.lerp(BIKE_LAUNCH_ACCELERATION_BOOST, 1, speedNormalized);
+      const forwardAcceleration =
+        (throttleInput >= 0 ? BIKE_FORWARD_ACCELERATION : BIKE_REVERSE_ACCELERATION) * launchAccelerationMultiplier;
       nextForwardSpeed = currentForwardSpeed + throttleInput * forwardAcceleration * deltaSeconds + slopeForwardDelta;
 
       if (currentForwardSpeed * throttleInput < 0) {
@@ -707,10 +710,14 @@ export class BikePhysicsRig {
     const planarVelocity = scratchPlanarVelocity.copy(velocity).setY(0);
     const currentForwardSpeed = planarVelocity.dot(toppledForward);
     const currentSideSpeed = planarVelocity.dot(toppledRight);
+    const speedNormalized = MathUtils.clamp(Math.abs(currentForwardSpeed) / BIKE_BOOST_SPEED, 0, 1);
     const slopeAcceleration = this.resolveSlopeAcceleration(groundState.normal);
     const slopeForwardDelta = slopeAcceleration.dot(toppledForward) * deltaSeconds;
     const slopeSideDelta = slopeAcceleration.dot(toppledRight) * deltaSeconds;
-    const forwardAcceleration = input.throttle >= 0 ? BIKE_FORWARD_ACCELERATION * 0.72 : BIKE_REVERSE_ACCELERATION * 0.62;
+    const launchAccelerationMultiplier = MathUtils.lerp(BIKE_LAUNCH_ACCELERATION_BOOST, 1, speedNormalized);
+    const forwardAcceleration =
+      (input.throttle >= 0 ? BIKE_FORWARD_ACCELERATION * 0.72 : BIKE_REVERSE_ACCELERATION * 0.62)
+      * launchAccelerationMultiplier;
     let nextForwardSpeed = currentForwardSpeed + input.throttle * forwardAcceleration * deltaSeconds + slopeForwardDelta;
     const forwardSpeedCap = input.boost ? BIKE_BOOST_SPEED : BIKE_FORWARD_SPEED;
 

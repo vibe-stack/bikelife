@@ -135,39 +135,42 @@ canvas {
 .touch-joystick {
   position: absolute;
   left: 1rem;
-  bottom: 1rem;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 3.5rem);
   width: 9.5rem;
   height: 9.5rem;
   border-radius: 999px;
-  background: radial-gradient(circle at 50% 50%, rgba(112, 179, 255, 0.16), rgba(7, 12, 19, 0.04));
-  border: 1px solid rgba(185, 219, 255, 0.18);
-  backdrop-filter: blur(10px);
+  background: radial-gradient(circle at 50% 50%, rgba(124, 188, 255, 0.18), rgba(8, 13, 20, 0.2));
+  border: 1px solid rgba(212, 233, 255, 0.16);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.26);
   pointer-events: auto;
 }
 
 .touch-actions {
   position: absolute;
   right: 1rem;
-  bottom: 1rem;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 3rem);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.75rem;
+  gap: 0.85rem;
   pointer-events: none;
 }
 
 .touch-action {
-  min-width: 5.75rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid rgba(220, 236, 255, 0.18);
-  border-radius: 999px;
-  background: rgba(8, 12, 18, 0.82);
+  min-width: 6.25rem;
+  padding: 0.95rem 1.1rem;
+  border: 1px solid rgba(220, 236, 255, 0.14);
+  border-radius: 1.35rem;
+  background: rgba(12, 17, 24, 0.46);
   color: #f4f7fb;
   font: inherit;
   font-weight: 600;
   letter-spacing: 0.02em;
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   pointer-events: auto;
   touch-action: none;
 }
