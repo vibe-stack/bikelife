@@ -28,6 +28,7 @@ export type StarterPlayerBike = {
 type RegisteredBike = BikePhysicsRig;
 
 type StarterPlayerControllerOptions = {
+  audioMuted?: boolean;
   camera: PerspectiveCamera;
   cameraMode: SceneSettings["player"]["cameraMode"];
   domElement: HTMLCanvasElement;
@@ -115,6 +116,9 @@ export class StarterPlayerController {
   private bikeAudioBufferPromise: Promise<AudioBuffer> | null = null;
   private bikeAudioContext: AudioContext | null = null;
   private bikeAudioGainNode: GainNode | null = null;
+  private bikeAudioMuted = false;
+  private bikeAudioSourceLoadPromise: Promise<void> | null = null;
+  private bikeAudioSourceRequestId = 0;
   private bikeAudioSource: AudioBufferSourceNode | null = null;
   private animationAnimator: ReturnType<typeof createAnimatorInstance> | null = null;
   private animationBaseOffset = new Vector3();
@@ -153,6 +157,7 @@ export class StarterPlayerController {
     this.sceneSettings = options.sceneSettings;
     this.setStatus = options.setStatus;
     this.world = options.world;
+    this.bikeAudioMuted = options.audioMuted ?? false;
     this.isTouchDevice = isLikelyTouchDevice();
     this.standingHeight = Math.max(0.9, options.sceneSettings.player.height * PLAYER_SCALE_FACTOR);
     this.radius = MathUtils.clamp(this.standingHeight * 0.18, 0.24, 0.42);
@@ -254,6 +259,17 @@ export class StarterPlayerController {
 
   setCameraMode(cameraMode: SceneSettings["player"]["cameraMode"]) {
     this.cameraMode = cameraMode;
+  }
+
+  setAudioMuted(muted: boolean) {
+    this.bikeAudioMuted = muted;
+
+    if (muted) {
+      this.stopBikeAudio();
+      return;
+    }
+
+    this.updateBikeAudio();
   }
 
   updateAfterStep(deltaSeconds: number) {
@@ -967,7 +983,7 @@ export class StarterPlayerController {
   }
 
   private updateBikeAudio() {
-    if (!this.mountedBike) {
+    if (!this.mountedBike || this.bikeAudioMuted) {
       this.stopBikeAudio();
       return;
     }
@@ -987,6 +1003,7 @@ export class StarterPlayerController {
   }
 
   private stopBikeAudio() {
+    this.bikeAudioSourceRequestId += 1;
     this.updateBikeAudioGain(0);
 
     if (!this.bikeAudioSource) {
@@ -1030,18 +1047,41 @@ export class StarterPlayerController {
     }
 
     if (!this.bikeAudioSource) {
-      const buffer = await this.loadBikeAudioBuffer(graph.context);
+      if (!this.bikeAudioSourceLoadPromise) {
+        const requestId = ++this.bikeAudioSourceRequestId;
+        this.bikeAudioSourceLoadPromise = this.loadBikeAudioBuffer(graph.context)
+          .then((buffer) => {
+            if (
+              this.bikeAudioSource
+              || !this.mountedBike
+              || this.bikeAudioMuted
+              || requestId !== this.bikeAudioSourceRequestId
+            ) {
+              return;
+            }
 
-      if (!this.mountedBike) {
-        return;
+            const source = graph.context.createBufferSource();
+            source.buffer = buffer;
+            source.loop = true;
+            source.connect(graph.gain);
+            source.onended = () => {
+              if (this.bikeAudioSource === source) {
+                this.bikeAudioSource = null;
+              }
+            };
+            source.start();
+            this.bikeAudioSource = source;
+          })
+          .finally(() => {
+            this.bikeAudioSourceLoadPromise = null;
+          });
       }
 
-      const source = graph.context.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-      source.connect(graph.gain);
-      source.start();
-      this.bikeAudioSource = source;
+      await this.bikeAudioSourceLoadPromise;
+
+      if (!this.bikeAudioSource) {
+        return;
+      }
     }
 
     this.bikeAudioSource.playbackRate.setTargetAtTime(playbackRate, graph.context.currentTime, 0.12);

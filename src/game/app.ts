@@ -36,6 +36,7 @@ const MAX_PHYSICS_CATCH_UP_SECONDS = FIXED_STEP_SECONDS * 4;
 export function createGameApp(options: GameAppOptions) {
   options.root.innerHTML = `
     <div class="game-shell">
+      <button class="game-audio-toggle" type="button" aria-pressed="false" data-game-audio-toggle>Mute</button>
       <div class="game-loading is-visible" data-game-loading>
         <div class="game-loading-inner">
           <div class="game-loading-title">BIKE LIFE</div>
@@ -52,11 +53,12 @@ export function createGameApp(options: GameAppOptions) {
 
   const shell = options.root.querySelector<HTMLDivElement>(".game-shell");
   const loading = options.root.querySelector<HTMLDivElement>("[data-game-loading]");
+  const audioToggle = options.root.querySelector<HTMLButtonElement>("[data-game-audio-toggle]");
   const loadingFill = options.root.querySelector<HTMLDivElement>("[data-game-loading-fill]");
   const loadingLabel = options.root.querySelector<HTMLDivElement>("[data-game-loading-label]");
   const status = options.root.querySelector<HTMLDivElement>("[data-game-status]");
 
-  if (!shell || !loading || !loadingFill || !loadingLabel || !status) {
+  if (!shell || !audioToggle || !loading || !loadingFill || !loadingLabel || !status) {
     throw new Error("Failed to initialize game shell.");
   }
 
@@ -70,8 +72,25 @@ export function createGameApp(options: GameAppOptions) {
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 4000);
   const clock = new THREE.Clock();
   let activeScene: ActiveScene | undefined;
+  let audioMuted = false;
   let currentLoadToken = 0;
   let disposed = false;
+
+  const syncAudioToggle = () => {
+    audioToggle.setAttribute("aria-pressed", audioMuted ? "true" : "false");
+    audioToggle.textContent = audioMuted ? "Unmute" : "Mute";
+  };
+
+  const setAudioMuted = (muted: boolean) => {
+    audioMuted = muted;
+    activeScene?.player?.setAudioMuted(audioMuted);
+    syncAudioToggle();
+  };
+
+  audioToggle.addEventListener("click", () => {
+    setAudioMuted(!audioMuted);
+  });
+  syncAudioToggle();
 
   const setStatus = (message: string) => {
     status.hidden = message.length === 0;
@@ -206,6 +225,7 @@ export function createGameApp(options: GameAppOptions) {
       });
       setLoadingState({ progress: 0.72 });
       const player = await createStarterPlayerController({
+        audioMuted,
         camera,
         definition,
         domElement: renderer.domElement,
@@ -365,6 +385,7 @@ function createBootstrapContext(options: {
 }
 
 async function createStarterPlayerController(options: {
+  audioMuted: boolean;
   camera: THREE.PerspectiveCamera;
   definition: GameSceneDefinition;
   domElement: HTMLCanvasElement;
@@ -393,6 +414,7 @@ async function createStarterPlayerController(options: {
   }
 
   return StarterPlayerController.create({
+    audioMuted: options.audioMuted,
     camera: options.camera,
     cameraMode: playerConfig.cameraMode ?? options.runtimeScene.scene.settings.player.cameraMode,
     domElement: options.domElement,

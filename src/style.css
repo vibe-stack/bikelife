@@ -125,6 +125,35 @@ canvas {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
+.game-audio-toggle {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 1rem);
+  left: 1rem;
+  z-index: 25;
+  min-width: 5.8rem;
+  padding: 0.72rem 1rem;
+  border: 1px solid rgba(220, 236, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(8, 12, 18, 0.58);
+  color: #f4f7fb;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+
+.game-audio-toggle:active {
+  transform: scale(0.98);
+}
+
+.game-audio-toggle[aria-pressed="true"] {
+  background: rgba(26, 14, 14, 0.64);
+  border-color: rgba(255, 182, 182, 0.22);
+}
+
 .touch-controls {
   position: absolute;
   inset: 0;
