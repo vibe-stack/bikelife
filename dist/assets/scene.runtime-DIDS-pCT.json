@@ -123,7 +123,7 @@
     }
   ],
   "metadata": {
-    "exportedAt": "2026-03-25T21:02:45.085Z",
+    "exportedAt": "2026-03-25T21:49:22.797Z",
     "format": "web-hammer-engine",
     "version": 6
   },
@@ -374,10 +374,6 @@
             "uvScale": {
               "x": 1,
               "y": 1
-            },
-            "uvOffset": {
-              "x": 0,
-              "y": 0
             }
           },
           {
@@ -387,10 +383,6 @@
             "uvScale": {
               "x": 1,
               "y": 1
-            },
-            "uvOffset": {
-              "x": 0,
-              "y": 0
             }
           },
           {
@@ -400,10 +392,6 @@
             "uvScale": {
               "x": 1,
               "y": 1
-            },
-            "uvOffset": {
-              "x": 0,
-              "y": 0
             }
           },
           {
@@ -413,10 +401,6 @@
             "uvScale": {
               "x": 1,
               "y": 1
-            },
-            "uvOffset": {
-              "x": 0,
-              "y": 0
             }
           },
           {
@@ -426,10 +410,6 @@
             "uvScale": {
               "x": 1,
               "y": 1
-            },
-            "uvOffset": {
-              "x": 0,
-              "y": 0
             }
           },
           {
@@ -439,10 +419,6 @@
             "uvScale": {
               "x": 1,
               "y": 1
-            },
-            "uvOffset": {
-              "x": 0,
-              "y": 0
             }
           }
         ]
@@ -3755,6 +3731,1924 @@
           "x": -9.94174267079885,
           "y": 15.442900559113832,
           "z": -28.151430096832158
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "vertices": [
+          {
+            "id": "vertex:mesh:0",
+            "position": {
+              "x": -21.375000000000043,
+              "y": -2.3413247168297513,
+              "z": 7.418074721889624
+            }
+          },
+          {
+            "id": "vertex:mesh:1",
+            "position": {
+              "x": -21.375000000000043,
+              "y": 3.638675283170248,
+              "z": 7.418074721889624
+            }
+          },
+          {
+            "id": "vertex:mesh:2",
+            "position": {
+              "x": -21.375000000000043,
+              "y": 2.292816248637141,
+              "z": 6.792813634294028
+            }
+          },
+          {
+            "id": "vertex:mesh:3",
+            "position": {
+              "x": -21.375000000000043,
+              "y": 1.038675283170249,
+              "z": 4.959640881334074
+            }
+          },
+          {
+            "id": "vertex:mesh:4",
+            "position": {
+              "x": -21.375000000000043,
+              "y": -0.03827997899979785,
+              "z": 2.043484156662771
+            }
+          },
+          {
+            "id": "vertex:mesh:5",
+            "position": {
+              "x": -21.375000000000043,
+              "y": -0.8646568165088313,
+              "z": -1.75692527811038
+            }
+          },
+          {
+            "id": "vertex:mesh:6",
+            "position": {
+              "x": -21.375000000000043,
+              "y": -1.3841390135329048,
+              "z": -6.18259580047912
+            }
+          },
+          {
+            "id": "vertex:mesh:7",
+            "position": {
+              "x": -21.375000000000043,
+              "y": -1.5613247168297488,
+              "z": -10.931925278110377
+            }
+          },
+          {
+            "id": "vertex:mesh:8",
+            "position": {
+              "x": -21.375000000000043,
+              "y": -2.341324716829749,
+              "z": -10.931925278110377
+            }
+          },
+          {
+            "id": "vertex:mesh:9",
+            "position": {
+              "x": 21.374999999999957,
+              "y": -2.341324716829754,
+              "z": -10.931925278110377
+            }
+          },
+          {
+            "id": "vertex:mesh:10",
+            "position": {
+              "x": 21.374999999999957,
+              "y": -1.5613247168297542,
+              "z": -10.931925278110377
+            }
+          },
+          {
+            "id": "vertex:mesh:11",
+            "position": {
+              "x": 21.374999999999957,
+              "y": -1.3841390135329101,
+              "z": -6.18259580047912
+            }
+          },
+          {
+            "id": "vertex:mesh:12",
+            "position": {
+              "x": 21.374999999999957,
+              "y": -0.8646568165088366,
+              "z": -1.75692527811038
+            }
+          },
+          {
+            "id": "vertex:mesh:13",
+            "position": {
+              "x": 21.374999999999957,
+              "y": -0.03827997899980318,
+              "z": 2.043484156662771
+            }
+          },
+          {
+            "id": "vertex:mesh:14",
+            "position": {
+              "x": 21.374999999999957,
+              "y": 1.0386752831702437,
+              "z": 4.959640881334074
+            }
+          },
+          {
+            "id": "vertex:mesh:15",
+            "position": {
+              "x": 21.374999999999957,
+              "y": 2.2928162486371355,
+              "z": 6.792813634294028
+            }
+          },
+          {
+            "id": "vertex:mesh:16",
+            "position": {
+              "x": 21.374999999999957,
+              "y": 3.6386752831702425,
+              "z": 7.418074721889624
+            }
+          },
+          {
+            "id": "vertex:mesh:17",
+            "position": {
+              "x": 21.374999999999957,
+              "y": -2.3413247168297566,
+              "z": 7.418074721889624
+            }
+          }
+        ],
+        "halfEdges": [
+          {
+            "id": "half-edge:face:ramp:front:0",
+            "vertex": "vertex:mesh:0",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:1",
+            "twin": "half-edge:face:ramp:side:7:0"
+          },
+          {
+            "id": "half-edge:face:ramp:front:1",
+            "vertex": "vertex:mesh:1",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:2",
+            "twin": "half-edge:face:ramp:side:6:0"
+          },
+          {
+            "id": "half-edge:face:ramp:front:2",
+            "vertex": "vertex:mesh:2",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:3",
+            "twin": "half-edge:face:ramp:side:5:0"
+          },
+          {
+            "id": "half-edge:face:ramp:front:3",
+            "vertex": "vertex:mesh:3",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:4",
+            "twin": "half-edge:face:ramp:side:4:0"
+          },
+          {
+            "id": "half-edge:face:ramp:front:4",
+            "vertex": "vertex:mesh:4",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:5",
+            "twin": "half-edge:face:ramp:side:3:0"
+          },
+          {
+            "id": "half-edge:face:ramp:front:5",
+            "vertex": "vertex:mesh:5",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:6",
+            "twin": "half-edge:face:ramp:side:2:0"
+          },
+          {
+            "id": "half-edge:face:ramp:front:6",
+            "vertex": "vertex:mesh:6",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:7",
+            "twin": "half-edge:face:ramp:side:1:0"
+          },
+          {
+            "id": "half-edge:face:ramp:front:7",
+            "vertex": "vertex:mesh:7",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:8",
+            "twin": "half-edge:face:ramp:side:0:0"
+          },
+          {
+            "id": "half-edge:face:ramp:front:8",
+            "vertex": "vertex:mesh:8",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:0"
+          },
+          {
+            "id": "half-edge:face:ramp:back:0",
+            "vertex": "vertex:mesh:9",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:1",
+            "twin": "half-edge:face:ramp:side:0:2"
+          },
+          {
+            "id": "half-edge:face:ramp:back:1",
+            "vertex": "vertex:mesh:10",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:2",
+            "twin": "half-edge:face:ramp:side:1:2"
+          },
+          {
+            "id": "half-edge:face:ramp:back:2",
+            "vertex": "vertex:mesh:11",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:3",
+            "twin": "half-edge:face:ramp:side:2:2"
+          },
+          {
+            "id": "half-edge:face:ramp:back:3",
+            "vertex": "vertex:mesh:12",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:4",
+            "twin": "half-edge:face:ramp:side:3:2"
+          },
+          {
+            "id": "half-edge:face:ramp:back:4",
+            "vertex": "vertex:mesh:13",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:5",
+            "twin": "half-edge:face:ramp:side:4:2"
+          },
+          {
+            "id": "half-edge:face:ramp:back:5",
+            "vertex": "vertex:mesh:14",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:6",
+            "twin": "half-edge:face:ramp:side:5:2"
+          },
+          {
+            "id": "half-edge:face:ramp:back:6",
+            "vertex": "vertex:mesh:15",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:7",
+            "twin": "half-edge:face:ramp:side:6:2"
+          },
+          {
+            "id": "half-edge:face:ramp:back:7",
+            "vertex": "vertex:mesh:16",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:8",
+            "twin": "half-edge:face:ramp:side:7:2"
+          },
+          {
+            "id": "half-edge:face:ramp:back:8",
+            "vertex": "vertex:mesh:17",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:0:0",
+            "vertex": "vertex:mesh:8",
+            "face": "face:ramp:side:0",
+            "twin": "half-edge:face:ramp:front:7",
+            "next": "half-edge:face:ramp:side:0:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:0:1",
+            "vertex": "vertex:mesh:7",
+            "face": "face:ramp:side:0",
+            "next": "half-edge:face:ramp:side:0:2",
+            "twin": "half-edge:face:ramp:side:1:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:0:2",
+            "vertex": "vertex:mesh:10",
+            "face": "face:ramp:side:0",
+            "twin": "half-edge:face:ramp:back:0",
+            "next": "half-edge:face:ramp:side:0:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:0:3",
+            "vertex": "vertex:mesh:9",
+            "face": "face:ramp:side:0",
+            "next": "half-edge:face:ramp:side:0:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:1:0",
+            "vertex": "vertex:mesh:7",
+            "face": "face:ramp:side:1",
+            "twin": "half-edge:face:ramp:front:6",
+            "next": "half-edge:face:ramp:side:1:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:1:1",
+            "vertex": "vertex:mesh:6",
+            "face": "face:ramp:side:1",
+            "next": "half-edge:face:ramp:side:1:2",
+            "twin": "half-edge:face:ramp:side:2:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:1:2",
+            "vertex": "vertex:mesh:11",
+            "face": "face:ramp:side:1",
+            "twin": "half-edge:face:ramp:back:1",
+            "next": "half-edge:face:ramp:side:1:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:1:3",
+            "vertex": "vertex:mesh:10",
+            "face": "face:ramp:side:1",
+            "twin": "half-edge:face:ramp:side:0:1",
+            "next": "half-edge:face:ramp:side:1:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:2:0",
+            "vertex": "vertex:mesh:6",
+            "face": "face:ramp:side:2",
+            "twin": "half-edge:face:ramp:front:5",
+            "next": "half-edge:face:ramp:side:2:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:2:1",
+            "vertex": "vertex:mesh:5",
+            "face": "face:ramp:side:2",
+            "next": "half-edge:face:ramp:side:2:2",
+            "twin": "half-edge:face:ramp:side:3:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:2:2",
+            "vertex": "vertex:mesh:12",
+            "face": "face:ramp:side:2",
+            "twin": "half-edge:face:ramp:back:2",
+            "next": "half-edge:face:ramp:side:2:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:2:3",
+            "vertex": "vertex:mesh:11",
+            "face": "face:ramp:side:2",
+            "twin": "half-edge:face:ramp:side:1:1",
+            "next": "half-edge:face:ramp:side:2:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:3:0",
+            "vertex": "vertex:mesh:5",
+            "face": "face:ramp:side:3",
+            "twin": "half-edge:face:ramp:front:4",
+            "next": "half-edge:face:ramp:side:3:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:3:1",
+            "vertex": "vertex:mesh:4",
+            "face": "face:ramp:side:3",
+            "next": "half-edge:face:ramp:side:3:2",
+            "twin": "half-edge:face:ramp:side:4:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:3:2",
+            "vertex": "vertex:mesh:13",
+            "face": "face:ramp:side:3",
+            "twin": "half-edge:face:ramp:back:3",
+            "next": "half-edge:face:ramp:side:3:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:3:3",
+            "vertex": "vertex:mesh:12",
+            "face": "face:ramp:side:3",
+            "twin": "half-edge:face:ramp:side:2:1",
+            "next": "half-edge:face:ramp:side:3:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:4:0",
+            "vertex": "vertex:mesh:4",
+            "face": "face:ramp:side:4",
+            "twin": "half-edge:face:ramp:front:3",
+            "next": "half-edge:face:ramp:side:4:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:4:1",
+            "vertex": "vertex:mesh:3",
+            "face": "face:ramp:side:4",
+            "next": "half-edge:face:ramp:side:4:2",
+            "twin": "half-edge:face:ramp:side:5:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:4:2",
+            "vertex": "vertex:mesh:14",
+            "face": "face:ramp:side:4",
+            "twin": "half-edge:face:ramp:back:4",
+            "next": "half-edge:face:ramp:side:4:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:4:3",
+            "vertex": "vertex:mesh:13",
+            "face": "face:ramp:side:4",
+            "twin": "half-edge:face:ramp:side:3:1",
+            "next": "half-edge:face:ramp:side:4:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:5:0",
+            "vertex": "vertex:mesh:3",
+            "face": "face:ramp:side:5",
+            "twin": "half-edge:face:ramp:front:2",
+            "next": "half-edge:face:ramp:side:5:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:5:1",
+            "vertex": "vertex:mesh:2",
+            "face": "face:ramp:side:5",
+            "next": "half-edge:face:ramp:side:5:2",
+            "twin": "half-edge:face:ramp:side:6:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:5:2",
+            "vertex": "vertex:mesh:15",
+            "face": "face:ramp:side:5",
+            "twin": "half-edge:face:ramp:back:5",
+            "next": "half-edge:face:ramp:side:5:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:5:3",
+            "vertex": "vertex:mesh:14",
+            "face": "face:ramp:side:5",
+            "twin": "half-edge:face:ramp:side:4:1",
+            "next": "half-edge:face:ramp:side:5:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:6:0",
+            "vertex": "vertex:mesh:2",
+            "face": "face:ramp:side:6",
+            "twin": "half-edge:face:ramp:front:1",
+            "next": "half-edge:face:ramp:side:6:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:6:1",
+            "vertex": "vertex:mesh:1",
+            "face": "face:ramp:side:6",
+            "next": "half-edge:face:ramp:side:6:2",
+            "twin": "half-edge:face:ramp:side:7:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:6:2",
+            "vertex": "vertex:mesh:16",
+            "face": "face:ramp:side:6",
+            "twin": "half-edge:face:ramp:back:6",
+            "next": "half-edge:face:ramp:side:6:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:6:3",
+            "vertex": "vertex:mesh:15",
+            "face": "face:ramp:side:6",
+            "twin": "half-edge:face:ramp:side:5:1",
+            "next": "half-edge:face:ramp:side:6:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:7:0",
+            "vertex": "vertex:mesh:1",
+            "face": "face:ramp:side:7",
+            "twin": "half-edge:face:ramp:front:0",
+            "next": "half-edge:face:ramp:side:7:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:7:1",
+            "vertex": "vertex:mesh:0",
+            "face": "face:ramp:side:7",
+            "next": "half-edge:face:ramp:side:7:2"
+          },
+          {
+            "id": "half-edge:face:ramp:side:7:2",
+            "vertex": "vertex:mesh:17",
+            "face": "face:ramp:side:7",
+            "twin": "half-edge:face:ramp:back:7",
+            "next": "half-edge:face:ramp:side:7:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:7:3",
+            "vertex": "vertex:mesh:16",
+            "face": "face:ramp:side:7",
+            "twin": "half-edge:face:ramp:side:6:1",
+            "next": "half-edge:face:ramp:side:7:0"
+          }
+        ],
+        "faces": [
+          {
+            "id": "face:ramp:front",
+            "halfEdge": "half-edge:face:ramp:front:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:back",
+            "halfEdge": "half-edge:face:ramp:back:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:0",
+            "halfEdge": "half-edge:face:ramp:side:0:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:1",
+            "halfEdge": "half-edge:face:ramp:side:1:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:2",
+            "halfEdge": "half-edge:face:ramp:side:2:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:3",
+            "halfEdge": "half-edge:face:ramp:side:3:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:4",
+            "halfEdge": "half-edge:face:ramp:side:4:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:5",
+            "halfEdge": "half-edge:face:ramp:side:5:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:6",
+            "halfEdge": "half-edge:face:ramp:side:6:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:7",
+            "halfEdge": "half-edge:face:ramp:side:7:0",
+            "materialId": "material:blockout:orange"
+          }
+        ]
+      },
+      "geometry": {
+        "primitives": [
+          {
+            "indices": [
+              7,
+              8,
+              0,
+              0,
+              1,
+              2,
+              6,
+              7,
+              0,
+              0,
+              2,
+              3,
+              5,
+              6,
+              0,
+              0,
+              3,
+              4,
+              4,
+              5,
+              0,
+              17,
+              9,
+              10,
+              15,
+              16,
+              17,
+              17,
+              10,
+              11,
+              14,
+              15,
+              17,
+              17,
+              11,
+              12,
+              13,
+              14,
+              17,
+              17,
+              12,
+              13,
+              20,
+              21,
+              18,
+              18,
+              19,
+              20,
+              24,
+              25,
+              22,
+              22,
+              23,
+              24,
+              28,
+              29,
+              26,
+              26,
+              27,
+              28,
+              32,
+              33,
+              30,
+              30,
+              31,
+              32,
+              36,
+              37,
+              34,
+              34,
+              35,
+              36,
+              40,
+              41,
+              38,
+              38,
+              39,
+              40,
+              44,
+              45,
+              42,
+              42,
+              43,
+              44,
+              48,
+              49,
+              46,
+              46,
+              47,
+              48
+            ],
+            "material": {
+              "baseColorTexture": "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22256%22%20height%3D%22256%22%20viewBox%3D%220%200%20256%20256%22%3E%0A%20%20%20%20%20%20%3Crect%20width%3D%22256%22%20height%3D%22256%22%20rx%3D%2218%22%20fill%3D%22%23f69036%22%20%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%222.5%22%20y%3D%222.5%22%20width%3D%22251%22%20height%3D%22251%22%20rx%3D%2216%22%20fill%3D%22none%22%20stroke%3D%22%23fee9cb%22%20stroke-width%3D%225%22%20%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22240%22%20height%3D%22240%22%20rx%3D%2213%22%20fill%3D%22none%22%20stroke%3D%22%23fff9ec%22%20stroke-opacity%3D%220.42%22%20stroke-width%3D%221%22%20%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2213%22%20y%3D%2213%22%20width%3D%22230%22%20height%3D%22230%22%20rx%3D%229%22%20fill%3D%22none%22%20stroke%3D%22%23fcd9b0%22%20stroke-opacity%3D%220.12%22%20stroke-width%3D%221%22%20%2F%3E%0A%20%20%20%20%20%20%3Cpath%20d%3D%22M%208%2071.68%20H%20248%22%20stroke%3D%22%23fff9ec%22%20stroke-opacity%3D%220.08%22%20stroke-width%3D%221%22%20%2F%3E%0A%20%20%20%20%20%20%3Cpath%20d%3D%22M%2071.68%208%20V%20248%22%20stroke%3D%22%23fff9ec%22%20stroke-opacity%3D%220.06%22%20stroke-width%3D%221%22%20%2F%3E%0A%20%20%20%20%3C%2Fsvg%3E",
+              "color": "#f69036",
+              "id": "material:blockout:orange",
+              "metallicFactor": 0,
+              "name": "Blockout Orange",
+              "roughnessFactor": 0.95
+            },
+            "normals": [
+              -1,
+              -1.5947783583092645e-15,
+              0,
+              -1,
+              -1.5947783583092645e-15,
+              0,
+              -1,
+              -1.5947783583092645e-15,
+              0,
+              -1,
+              -1.5947783583092645e-15,
+              0,
+              -1,
+              -1.5947783583092645e-15,
+              0,
+              -1,
+              -1.5947783583092645e-15,
+              0,
+              -1,
+              -1.5947783583092645e-15,
+              0,
+              -1,
+              -1.5947783583092645e-15,
+              0,
+              -1,
+              -1.5947783583092645e-15,
+              0,
+              1,
+              1.5947783583092645e-15,
+              0,
+              1,
+              1.5947783583092645e-15,
+              0,
+              1,
+              1.5947783583092645e-15,
+              0,
+              1,
+              1.5947783583092645e-15,
+              0,
+              1,
+              1.5947783583092645e-15,
+              0,
+              1,
+              1.5947783583092645e-15,
+              0,
+              1,
+              1.5947783583092645e-15,
+              0,
+              1,
+              1.5947783583092645e-15,
+              0,
+              1,
+              1.5947783583092645e-15,
+              0,
+              3.345193157837155e-18,
+              0,
+              -1,
+              3.345193157837155e-18,
+              0,
+              -1,
+              3.345193157837155e-18,
+              0,
+              -1,
+              3.345193157837155e-18,
+              0,
+              -1,
+              1.2498776360742623e-16,
+              0.9993048001118615,
+              -0.037281583568727836,
+              1.2498776360742623e-16,
+              0.9993048001118615,
+              -0.037281583568727836,
+              1.2498776360742623e-16,
+              0.9993048001118615,
+              -0.037281583568727836,
+              1.2498776360742623e-16,
+              0.9993048001118615,
+              -0.037281583568727836,
+              1.240003722999998e-16,
+              0.9931814264997435,
+              -0.11657896060582588,
+              1.240003722999998e-16,
+              0.9931814264997435,
+              -0.11657896060582588,
+              1.240003722999998e-16,
+              0.9931814264997435,
+              -0.11657896060582588,
+              1.240003722999998e-16,
+              0.9931814264997435,
+              -0.11657896060582588,
+              1.2183538077863162e-16,
+              0.9771656413555829,
+              -0.21247896214480205,
+              1.2183538077863162e-16,
+              0.9771656413555829,
+              -0.21247896214480205,
+              1.2183538077863162e-16,
+              0.9771656413555829,
+              -0.21247896214480205,
+              1.2183538077863162e-16,
+              0.9771656413555829,
+              -0.21247896214480205,
+              1.1855545234217652e-16,
+              0.9380734273468797,
+              -0.34643649476589283,
+              1.1855545234217652e-16,
+              0.9380734273468797,
+              -0.34643649476589283,
+              1.1855545234217652e-16,
+              0.9380734273468797,
+              -0.34643649476589283,
+              1.1855545234217652e-16,
+              0.9380734273468797,
+              -0.34643649476589283,
+              1.0515764390850104e-16,
+              0.8253356129966257,
+              -0.5646424761913366,
+              1.0515764390850104e-16,
+              0.8253356129966257,
+              -0.5646424761913366,
+              1.0515764390850104e-16,
+              0.8253356129966257,
+              -0.5646424761913366,
+              1.0515764390850104e-16,
+              0.8253356129966257,
+              -0.5646424761913366,
+              4.54035511119444e-17,
+              0.4213319066188041,
+              -0.9069065136302437,
+              4.54035511119444e-17,
+              0.4213319066188041,
+              -0.9069065136302437,
+              4.54035511119444e-17,
+              0.4213319066188041,
+              -0.9069065136302437,
+              4.54035511119444e-17,
+              0.4213319066188041,
+              -0.9069065136302437,
+              1.2130574990216027e-17,
+              0,
+              1,
+              1.2130574990216027e-17,
+              0,
+              1,
+              1.2130574990216027e-17,
+              0,
+              1,
+              1.2130574990216027e-17,
+              0,
+              1
+            ],
+            "positions": [
+              -21.375000000000043,
+              -2.3413247168297513,
+              7.418074721889624,
+              -21.375000000000043,
+              3.638675283170248,
+              7.418074721889624,
+              -21.375000000000043,
+              2.292816248637141,
+              6.792813634294028,
+              -21.375000000000043,
+              1.038675283170249,
+              4.959640881334074,
+              -21.375000000000043,
+              -0.03827997899979785,
+              2.043484156662771,
+              -21.375000000000043,
+              -0.8646568165088313,
+              -1.75692527811038,
+              -21.375000000000043,
+              -1.3841390135329048,
+              -6.18259580047912,
+              -21.375000000000043,
+              -1.5613247168297488,
+              -10.931925278110377,
+              -21.375000000000043,
+              -2.341324716829749,
+              -10.931925278110377,
+              21.374999999999957,
+              -2.341324716829754,
+              -10.931925278110377,
+              21.374999999999957,
+              -1.5613247168297542,
+              -10.931925278110377,
+              21.374999999999957,
+              -1.3841390135329101,
+              -6.18259580047912,
+              21.374999999999957,
+              -0.8646568165088366,
+              -1.75692527811038,
+              21.374999999999957,
+              -0.03827997899980318,
+              2.043484156662771,
+              21.374999999999957,
+              1.0386752831702437,
+              4.959640881334074,
+              21.374999999999957,
+              2.2928162486371355,
+              6.792813634294028,
+              21.374999999999957,
+              3.6386752831702425,
+              7.418074721889624,
+              21.374999999999957,
+              -2.3413247168297566,
+              7.418074721889624,
+              -21.375000000000043,
+              -2.341324716829749,
+              -10.931925278110377,
+              -21.375000000000043,
+              -1.5613247168297488,
+              -10.931925278110377,
+              21.374999999999957,
+              -1.5613247168297542,
+              -10.931925278110377,
+              21.374999999999957,
+              -2.341324716829754,
+              -10.931925278110377,
+              -21.375000000000043,
+              -1.5613247168297488,
+              -10.931925278110377,
+              -21.375000000000043,
+              -1.3841390135329048,
+              -6.18259580047912,
+              21.374999999999957,
+              -1.3841390135329101,
+              -6.18259580047912,
+              21.374999999999957,
+              -1.5613247168297542,
+              -10.931925278110377,
+              -21.375000000000043,
+              -1.3841390135329048,
+              -6.18259580047912,
+              -21.375000000000043,
+              -0.8646568165088313,
+              -1.75692527811038,
+              21.374999999999957,
+              -0.8646568165088366,
+              -1.75692527811038,
+              21.374999999999957,
+              -1.3841390135329101,
+              -6.18259580047912,
+              -21.375000000000043,
+              -0.8646568165088313,
+              -1.75692527811038,
+              -21.375000000000043,
+              -0.03827997899979785,
+              2.043484156662771,
+              21.374999999999957,
+              -0.03827997899980318,
+              2.043484156662771,
+              21.374999999999957,
+              -0.8646568165088366,
+              -1.75692527811038,
+              -21.375000000000043,
+              -0.03827997899979785,
+              2.043484156662771,
+              -21.375000000000043,
+              1.038675283170249,
+              4.959640881334074,
+              21.374999999999957,
+              1.0386752831702437,
+              4.959640881334074,
+              21.374999999999957,
+              -0.03827997899980318,
+              2.043484156662771,
+              -21.375000000000043,
+              1.038675283170249,
+              4.959640881334074,
+              -21.375000000000043,
+              2.292816248637141,
+              6.792813634294028,
+              21.374999999999957,
+              2.2928162486371355,
+              6.792813634294028,
+              21.374999999999957,
+              1.0386752831702437,
+              4.959640881334074,
+              -21.375000000000043,
+              2.292816248637141,
+              6.792813634294028,
+              -21.375000000000043,
+              3.638675283170248,
+              7.418074721889624,
+              21.374999999999957,
+              3.6386752831702425,
+              7.418074721889624,
+              21.374999999999957,
+              2.2928162486371355,
+              6.792813634294028,
+              -21.375000000000043,
+              3.638675283170248,
+              7.418074721889624,
+              -21.375000000000043,
+              -2.3413247168297513,
+              7.418074721889624,
+              21.374999999999957,
+              -2.3413247168297566,
+              7.418074721889624,
+              21.374999999999957,
+              3.6386752831702425,
+              7.418074721889624
+            ],
+            "uvs": [
+              0,
+              0,
+              0,
+              5.979999999999999,
+              -0.6252610875955966,
+              4.634140965466893,
+              -2.45843384055555,
+              3.3800000000000003,
+              -5.374590565226853,
+              2.3030447378299534,
+              -9.175000000000004,
+              1.47666790032092,
+              -13.600670522368745,
+              0.9571857032968465,
+              -18.35,
+              0.7800000000000025,
+              -18.35,
+              2.220446049250313e-15,
+              0,
+              0,
+              0,
+              0.7799999999999998,
+              -4.749329477631257,
+              0.9571857032968438,
+              -9.174999999999997,
+              1.4766679003209173,
+              -12.975409434773148,
+              2.303044737829951,
+              -15.891566159444452,
+              3.3799999999999977,
+              -17.724738912404405,
+              4.634140965466889,
+              -18.35,
+              5.979999999999997,
+              -18.35,
+              -2.6645352591003757e-15,
+              0,
+              0,
+              0,
+              0.7800000000000002,
+              -42.75,
+              0.7799999999999949,
+              -42.75,
+              -4.884981308350689e-15,
+              0,
+              0,
+              4.752633507914321,
+              -1.232595164407831e-32,
+              4.752633507914321,
+              42.75,
+              -1.986761878679451e-16,
+              42.75,
+              0,
+              0,
+              4.456054457206347,
+              1.232595164407831e-32,
+              4.4560544572063465,
+              42.75,
+              -6.212575020069935e-16,
+              42.75,
+              0,
+              0,
+              -2.179153766219665e-15,
+              3.8892172155183378,
+              -42.75,
+              3.8892172155183125,
+              -42.75,
+              -2.5085419132235666e-14,
+              0,
+              0,
+              -9.979499412373212e-16,
+              3.1086657394389348,
+              -42.75,
+              3.108665739438919,
+              -42.75,
+              -1.5569872923578703e-14,
+              0,
+              0,
+              -3.4140564287481257e-16,
+              2.221124018027134,
+              -42.75,
+              2.221124018027125,
+              -42.75,
+              -9.580057981875251e-15,
+              0,
+              0,
+              -3.13031975427306e-17,
+              1.4840107710173855,
+              -42.75,
+              1.4840107710173798,
+              -42.75,
+              -5.734722121795529e-15,
+              0,
+              0,
+              0,
+              -5.979999999999999,
+              42.75,
+              -5.980000000000004,
+              42.75,
+              -5.329070518200751e-15
+            ]
+          }
+        ]
+      },
+      "id": "node:mesh:placed:copy:3",
+      "kind": "mesh",
+      "name": "Blockout Ramp",
+      "transform": {
+        "position": {
+          "x": -43.923397104500566,
+          "y": 1.9613247198099848,
+          "z": 46.57653622245794
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "vertices": [
+          {
+            "id": "vertex:mesh:0",
+            "position": {
+              "x": -12.575000000000003,
+              "y": -5.357446602445223,
+              "z": 24.522662623766664
+            }
+          },
+          {
+            "id": "vertex:mesh:1",
+            "position": {
+              "x": -12.575000000000003,
+              "y": -3.497446602445223,
+              "z": 24.522662623766664
+            }
+          },
+          {
+            "id": "vertex:mesh:2",
+            "position": {
+              "x": -12.575000000000003,
+              "y": -2.5535528055851766,
+              "z": 8.373421777959877
+            }
+          },
+          {
+            "id": "vertex:mesh:3",
+            "position": {
+              "x": -12.575000000000003,
+              "y": 0.13442931084159104,
+              "z": -5.31724354230564
+            }
+          },
+          {
+            "id": "vertex:mesh:4",
+            "position": {
+              "x": -12.575000000000003,
+              "y": 4.157278836227668,
+              "z": -14.46505364820964
+            }
+          },
+          {
+            "id": "vertex:mesh:5",
+            "position": {
+              "x": -12.575000000000003,
+              "y": 6.552553394574549,
+              "z": -17.67733737623334
+            }
+          },
+          {
+            "id": "vertex:mesh:6",
+            "position": {
+              "x": -12.575000000000003,
+              "y": -5.357446602445218,
+              "z": -17.67733737623334
+            }
+          },
+          {
+            "id": "vertex:mesh:7",
+            "position": {
+              "x": 12.575000000000003,
+              "y": -5.35744660244522,
+              "z": -17.67733737623334
+            }
+          },
+          {
+            "id": "vertex:mesh:8",
+            "position": {
+              "x": 12.575000000000003,
+              "y": 6.552553394574545,
+              "z": -17.67733737623334
+            }
+          },
+          {
+            "id": "vertex:mesh:9",
+            "position": {
+              "x": 12.575000000000003,
+              "y": 4.157278836227665,
+              "z": -14.46505364820964
+            }
+          },
+          {
+            "id": "vertex:mesh:10",
+            "position": {
+              "x": 12.575000000000003,
+              "y": 0.1344293108415875,
+              "z": -5.31724354230564
+            }
+          },
+          {
+            "id": "vertex:mesh:11",
+            "position": {
+              "x": 12.575000000000003,
+              "y": -2.5535528055851797,
+              "z": 8.373421777959877
+            }
+          },
+          {
+            "id": "vertex:mesh:12",
+            "position": {
+              "x": 12.575000000000003,
+              "y": -3.497446602445226,
+              "z": 24.522662623766664
+            }
+          },
+          {
+            "id": "vertex:mesh:13",
+            "position": {
+              "x": 12.575000000000003,
+              "y": -5.357446602445226,
+              "z": 24.522662623766664
+            }
+          }
+        ],
+        "halfEdges": [
+          {
+            "id": "half-edge:face:ramp:front:0",
+            "vertex": "vertex:mesh:0",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:1",
+            "twin": "half-edge:face:ramp:side:0:2"
+          },
+          {
+            "id": "half-edge:face:ramp:front:1",
+            "vertex": "vertex:mesh:1",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:2",
+            "twin": "half-edge:face:ramp:side:1:2"
+          },
+          {
+            "id": "half-edge:face:ramp:front:2",
+            "vertex": "vertex:mesh:2",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:3",
+            "twin": "half-edge:face:ramp:side:2:2"
+          },
+          {
+            "id": "half-edge:face:ramp:front:3",
+            "vertex": "vertex:mesh:3",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:4",
+            "twin": "half-edge:face:ramp:side:3:2"
+          },
+          {
+            "id": "half-edge:face:ramp:front:4",
+            "vertex": "vertex:mesh:4",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:5",
+            "twin": "half-edge:face:ramp:side:4:2"
+          },
+          {
+            "id": "half-edge:face:ramp:front:5",
+            "vertex": "vertex:mesh:5",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:6",
+            "twin": "half-edge:face:ramp:side:5:2"
+          },
+          {
+            "id": "half-edge:face:ramp:front:6",
+            "vertex": "vertex:mesh:6",
+            "face": "face:ramp:front",
+            "next": "half-edge:face:ramp:front:0"
+          },
+          {
+            "id": "half-edge:face:ramp:back:0",
+            "vertex": "vertex:mesh:7",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:1",
+            "twin": "half-edge:face:ramp:side:5:0"
+          },
+          {
+            "id": "half-edge:face:ramp:back:1",
+            "vertex": "vertex:mesh:8",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:2",
+            "twin": "half-edge:face:ramp:side:4:0"
+          },
+          {
+            "id": "half-edge:face:ramp:back:2",
+            "vertex": "vertex:mesh:9",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:3",
+            "twin": "half-edge:face:ramp:side:3:0"
+          },
+          {
+            "id": "half-edge:face:ramp:back:3",
+            "vertex": "vertex:mesh:10",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:4",
+            "twin": "half-edge:face:ramp:side:2:0"
+          },
+          {
+            "id": "half-edge:face:ramp:back:4",
+            "vertex": "vertex:mesh:11",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:5",
+            "twin": "half-edge:face:ramp:side:1:0"
+          },
+          {
+            "id": "half-edge:face:ramp:back:5",
+            "vertex": "vertex:mesh:12",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:6",
+            "twin": "half-edge:face:ramp:side:0:0"
+          },
+          {
+            "id": "half-edge:face:ramp:back:6",
+            "vertex": "vertex:mesh:13",
+            "face": "face:ramp:back",
+            "next": "half-edge:face:ramp:back:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:0:0",
+            "vertex": "vertex:mesh:13",
+            "face": "face:ramp:side:0",
+            "twin": "half-edge:face:ramp:back:5",
+            "next": "half-edge:face:ramp:side:0:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:0:1",
+            "vertex": "vertex:mesh:12",
+            "face": "face:ramp:side:0",
+            "next": "half-edge:face:ramp:side:0:2",
+            "twin": "half-edge:face:ramp:side:1:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:0:2",
+            "vertex": "vertex:mesh:1",
+            "face": "face:ramp:side:0",
+            "twin": "half-edge:face:ramp:front:0",
+            "next": "half-edge:face:ramp:side:0:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:0:3",
+            "vertex": "vertex:mesh:0",
+            "face": "face:ramp:side:0",
+            "next": "half-edge:face:ramp:side:0:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:1:0",
+            "vertex": "vertex:mesh:12",
+            "face": "face:ramp:side:1",
+            "twin": "half-edge:face:ramp:back:4",
+            "next": "half-edge:face:ramp:side:1:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:1:1",
+            "vertex": "vertex:mesh:11",
+            "face": "face:ramp:side:1",
+            "next": "half-edge:face:ramp:side:1:2",
+            "twin": "half-edge:face:ramp:side:2:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:1:2",
+            "vertex": "vertex:mesh:2",
+            "face": "face:ramp:side:1",
+            "twin": "half-edge:face:ramp:front:1",
+            "next": "half-edge:face:ramp:side:1:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:1:3",
+            "vertex": "vertex:mesh:1",
+            "face": "face:ramp:side:1",
+            "twin": "half-edge:face:ramp:side:0:1",
+            "next": "half-edge:face:ramp:side:1:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:2:0",
+            "vertex": "vertex:mesh:11",
+            "face": "face:ramp:side:2",
+            "twin": "half-edge:face:ramp:back:3",
+            "next": "half-edge:face:ramp:side:2:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:2:1",
+            "vertex": "vertex:mesh:10",
+            "face": "face:ramp:side:2",
+            "next": "half-edge:face:ramp:side:2:2",
+            "twin": "half-edge:face:ramp:side:3:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:2:2",
+            "vertex": "vertex:mesh:3",
+            "face": "face:ramp:side:2",
+            "twin": "half-edge:face:ramp:front:2",
+            "next": "half-edge:face:ramp:side:2:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:2:3",
+            "vertex": "vertex:mesh:2",
+            "face": "face:ramp:side:2",
+            "twin": "half-edge:face:ramp:side:1:1",
+            "next": "half-edge:face:ramp:side:2:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:3:0",
+            "vertex": "vertex:mesh:10",
+            "face": "face:ramp:side:3",
+            "twin": "half-edge:face:ramp:back:2",
+            "next": "half-edge:face:ramp:side:3:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:3:1",
+            "vertex": "vertex:mesh:9",
+            "face": "face:ramp:side:3",
+            "next": "half-edge:face:ramp:side:3:2",
+            "twin": "half-edge:face:ramp:side:4:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:3:2",
+            "vertex": "vertex:mesh:4",
+            "face": "face:ramp:side:3",
+            "twin": "half-edge:face:ramp:front:3",
+            "next": "half-edge:face:ramp:side:3:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:3:3",
+            "vertex": "vertex:mesh:3",
+            "face": "face:ramp:side:3",
+            "twin": "half-edge:face:ramp:side:2:1",
+            "next": "half-edge:face:ramp:side:3:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:4:0",
+            "vertex": "vertex:mesh:9",
+            "face": "face:ramp:side:4",
+            "twin": "half-edge:face:ramp:back:1",
+            "next": "half-edge:face:ramp:side:4:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:4:1",
+            "vertex": "vertex:mesh:8",
+            "face": "face:ramp:side:4",
+            "next": "half-edge:face:ramp:side:4:2",
+            "twin": "half-edge:face:ramp:side:5:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:4:2",
+            "vertex": "vertex:mesh:5",
+            "face": "face:ramp:side:4",
+            "twin": "half-edge:face:ramp:front:4",
+            "next": "half-edge:face:ramp:side:4:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:4:3",
+            "vertex": "vertex:mesh:4",
+            "face": "face:ramp:side:4",
+            "twin": "half-edge:face:ramp:side:3:1",
+            "next": "half-edge:face:ramp:side:4:0"
+          },
+          {
+            "id": "half-edge:face:ramp:side:5:0",
+            "vertex": "vertex:mesh:8",
+            "face": "face:ramp:side:5",
+            "twin": "half-edge:face:ramp:back:0",
+            "next": "half-edge:face:ramp:side:5:1"
+          },
+          {
+            "id": "half-edge:face:ramp:side:5:1",
+            "vertex": "vertex:mesh:7",
+            "face": "face:ramp:side:5",
+            "next": "half-edge:face:ramp:side:5:2"
+          },
+          {
+            "id": "half-edge:face:ramp:side:5:2",
+            "vertex": "vertex:mesh:6",
+            "face": "face:ramp:side:5",
+            "twin": "half-edge:face:ramp:front:5",
+            "next": "half-edge:face:ramp:side:5:3"
+          },
+          {
+            "id": "half-edge:face:ramp:side:5:3",
+            "vertex": "vertex:mesh:5",
+            "face": "face:ramp:side:5",
+            "twin": "half-edge:face:ramp:side:4:1",
+            "next": "half-edge:face:ramp:side:5:0"
+          }
+        ],
+        "faces": [
+          {
+            "id": "face:ramp:front",
+            "halfEdge": "half-edge:face:ramp:front:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:back",
+            "halfEdge": "half-edge:face:ramp:back:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:0",
+            "halfEdge": "half-edge:face:ramp:side:0:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:1",
+            "halfEdge": "half-edge:face:ramp:side:1:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:2",
+            "halfEdge": "half-edge:face:ramp:side:2:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:3",
+            "halfEdge": "half-edge:face:ramp:side:3:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:4",
+            "halfEdge": "half-edge:face:ramp:side:4:0",
+            "materialId": "material:blockout:orange"
+          },
+          {
+            "id": "face:ramp:side:5",
+            "halfEdge": "half-edge:face:ramp:side:5:0",
+            "materialId": "material:blockout:orange"
+          }
+        ]
+      },
+      "geometry": {
+        "primitives": [
+          {
+            "indices": [
+              6,
+              0,
+              1,
+              4,
+              5,
+              6,
+              6,
+              1,
+              2,
+              3,
+              4,
+              6,
+              6,
+              2,
+              3,
+              12,
+              13,
+              7,
+              7,
+              8,
+              9,
+              11,
+              12,
+              7,
+              7,
+              9,
+              10,
+              10,
+              11,
+              7,
+              16,
+              17,
+              14,
+              14,
+              15,
+              16,
+              20,
+              21,
+              18,
+              18,
+              19,
+              20,
+              24,
+              25,
+              22,
+              22,
+              23,
+              24,
+              28,
+              29,
+              26,
+              26,
+              27,
+              28,
+              32,
+              33,
+              30,
+              30,
+              31,
+              32,
+              36,
+              37,
+              34,
+              34,
+              35,
+              36
+            ],
+            "material": {
+              "baseColorTexture": "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22256%22%20height%3D%22256%22%20viewBox%3D%220%200%20256%20256%22%3E%0A%20%20%20%20%20%20%3Crect%20width%3D%22256%22%20height%3D%22256%22%20rx%3D%2218%22%20fill%3D%22%23f69036%22%20%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%222.5%22%20y%3D%222.5%22%20width%3D%22251%22%20height%3D%22251%22%20rx%3D%2216%22%20fill%3D%22none%22%20stroke%3D%22%23fee9cb%22%20stroke-width%3D%225%22%20%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22240%22%20height%3D%22240%22%20rx%3D%2213%22%20fill%3D%22none%22%20stroke%3D%22%23fff9ec%22%20stroke-opacity%3D%220.42%22%20stroke-width%3D%221%22%20%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2213%22%20y%3D%2213%22%20width%3D%22230%22%20height%3D%22230%22%20rx%3D%229%22%20fill%3D%22none%22%20stroke%3D%22%23fcd9b0%22%20stroke-opacity%3D%220.12%22%20stroke-width%3D%221%22%20%2F%3E%0A%20%20%20%20%20%20%3Cpath%20d%3D%22M%208%2071.68%20H%20248%22%20stroke%3D%22%23fff9ec%22%20stroke-opacity%3D%220.08%22%20stroke-width%3D%221%22%20%2F%3E%0A%20%20%20%20%20%20%3Cpath%20d%3D%22M%2071.68%208%20V%20248%22%20stroke%3D%22%23fff9ec%22%20stroke-opacity%3D%220.06%22%20stroke-width%3D%221%22%20%2F%3E%0A%20%20%20%20%3C%2Fsvg%3E",
+              "color": "#f69036",
+              "id": "material:blockout:orange",
+              "metallicFactor": 0,
+              "name": "Blockout Orange",
+              "roughnessFactor": 0.95
+            },
+            "normals": [
+              -1,
+              5.756400693045078e-16,
+              0,
+              -1,
+              5.756400693045078e-16,
+              0,
+              -1,
+              5.756400693045078e-16,
+              0,
+              -1,
+              5.756400693045078e-16,
+              0,
+              -1,
+              5.756400693045078e-16,
+              0,
+              -1,
+              5.756400693045078e-16,
+              0,
+              -1,
+              5.756400693045078e-16,
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0,
+              2.977090125142029e-17,
+              0,
+              1,
+              2.977090125142029e-17,
+              0,
+              1,
+              2.977090125142029e-17,
+              0,
+              1,
+              2.977090125142029e-17,
+              0,
+              1,
+              1.2187984567240926e-16,
+              0.9982962688680234,
+              0.05834860378949173,
+              1.2187984567240926e-16,
+              0.9982962688680234,
+              0.05834860378949173,
+              1.2187984567240926e-16,
+              0.9982962688680234,
+              0.05834860378949173,
+              1.2187984567240926e-16,
+              0.9982962688680234,
+              0.05834860378949173,
+              1.2733640001912206e-16,
+              0.9812658389040644,
+              0.19265864475777572,
+              1.2733640001912206e-16,
+              0.9812658389040644,
+              0.19265864475777572,
+              1.2733640001912206e-16,
+              0.9812658389040644,
+              0.19265864475777572,
+              1.2733640001912206e-16,
+              0.9812658389040644,
+              0.19265864475777572,
+              1.2273588506689116e-16,
+              0.9153956852986209,
+              0.40255526246301654,
+              1.2273588506689116e-16,
+              0.9153956852986209,
+              0.40255526246301654,
+              1.2273588506689116e-16,
+              0.9153956852986209,
+              0.40255526246301654,
+              1.2273588506689116e-16,
+              0.9153956852986209,
+              0.40255526246301654,
+              1.2461918869370665e-16,
+              0.8016665660549273,
+              0.5977714587279163,
+              1.2461918869370665e-16,
+              0.8016665660549273,
+              0.5977714587279163,
+              1.2461918869370665e-16,
+              0.8016665660549273,
+              0.5977714587279163,
+              1.2461918869370665e-16,
+              0.8016665660549273,
+              0.5977714587279163,
+              7.499122809913745e-17,
+              0,
+              -1,
+              7.499122809913745e-17,
+              0,
+              -1,
+              7.499122809913745e-17,
+              0,
+              -1,
+              7.499122809913745e-17,
+              0,
+              -1
+            ],
+            "positions": [
+              -12.575000000000003,
+              -5.357446602445223,
+              24.522662623766664,
+              -12.575000000000003,
+              -3.497446602445223,
+              24.522662623766664,
+              -12.575000000000003,
+              -2.5535528055851766,
+              8.373421777959877,
+              -12.575000000000003,
+              0.13442931084159104,
+              -5.31724354230564,
+              -12.575000000000003,
+              4.157278836227668,
+              -14.46505364820964,
+              -12.575000000000003,
+              6.552553394574549,
+              -17.67733737623334,
+              -12.575000000000003,
+              -5.357446602445218,
+              -17.67733737623334,
+              12.575000000000003,
+              -5.35744660244522,
+              -17.67733737623334,
+              12.575000000000003,
+              6.552553394574545,
+              -17.67733737623334,
+              12.575000000000003,
+              4.157278836227665,
+              -14.46505364820964,
+              12.575000000000003,
+              0.1344293108415875,
+              -5.31724354230564,
+              12.575000000000003,
+              -2.5535528055851797,
+              8.373421777959877,
+              12.575000000000003,
+              -3.497446602445226,
+              24.522662623766664,
+              12.575000000000003,
+              -5.357446602445226,
+              24.522662623766664,
+              12.575000000000003,
+              -5.357446602445226,
+              24.522662623766664,
+              12.575000000000003,
+              -3.497446602445226,
+              24.522662623766664,
+              -12.575000000000003,
+              -3.497446602445223,
+              24.522662623766664,
+              -12.575000000000003,
+              -5.357446602445223,
+              24.522662623766664,
+              12.575000000000003,
+              -3.497446602445226,
+              24.522662623766664,
+              12.575000000000003,
+              -2.5535528055851797,
+              8.373421777959877,
+              -12.575000000000003,
+              -2.5535528055851766,
+              8.373421777959877,
+              -12.575000000000003,
+              -3.497446602445223,
+              24.522662623766664,
+              12.575000000000003,
+              -2.5535528055851797,
+              8.373421777959877,
+              12.575000000000003,
+              0.1344293108415875,
+              -5.31724354230564,
+              -12.575000000000003,
+              0.13442931084159104,
+              -5.31724354230564,
+              -12.575000000000003,
+              -2.5535528055851766,
+              8.373421777959877,
+              12.575000000000003,
+              0.1344293108415875,
+              -5.31724354230564,
+              12.575000000000003,
+              4.157278836227665,
+              -14.46505364820964,
+              -12.575000000000003,
+              4.157278836227668,
+              -14.46505364820964,
+              -12.575000000000003,
+              0.13442931084159104,
+              -5.31724354230564,
+              12.575000000000003,
+              4.157278836227665,
+              -14.46505364820964,
+              12.575000000000003,
+              6.552553394574545,
+              -17.67733737623334,
+              -12.575000000000003,
+              6.552553394574549,
+              -17.67733737623334,
+              -12.575000000000003,
+              4.157278836227668,
+              -14.46505364820964,
+              12.575000000000003,
+              6.552553394574545,
+              -17.67733737623334,
+              12.575000000000003,
+              -5.35744660244522,
+              -17.67733737623334,
+              -12.575000000000003,
+              -5.357446602445218,
+              -17.67733737623334,
+              -12.575000000000003,
+              6.552553394574549,
+              -17.67733737623334
+            ],
+            "uvs": [
+              0,
+              0,
+              0,
+              1.8599999999999999,
+              -16.149240845806787,
+              2.8038937968600464,
+              -29.839906166072304,
+              5.491875913286814,
+              -38.9877162719763,
+              9.51472543867289,
+              -42.2,
+              11.90999999701977,
+              -42.2,
+              5.329070518200751e-15,
+              0,
+              0,
+              0,
+              11.909999997019765,
+              -3.2122837280236993,
+              9.514725438672885,
+              -12.3600938339277,
+              5.491875913286808,
+              -26.050759154193216,
+              2.8038937968600406,
+              -42.2,
+              1.859999999999994,
+              -42.2,
+              -5.329070518200751e-15,
+              0,
+              0,
+              0,
+              1.8599999999999994,
+              -25.150000000000006,
+              1.8600000000000025,
+              -25.150000000000006,
+              2.6645352591003757e-15,
+              0,
+              0,
+              -16.176801766592344,
+              2.465190328815662e-32,
+              -16.176801766592344,
+              -25.150000000000006,
+              -1.8138389746910825e-16,
+              -25.150000000000006,
+              0,
+              0,
+              9.048750643611546e-15,
+              13.95204518232904,
+              -25.149999999999995,
+              13.952045182329059,
+              -25.150000000000006,
+              1.6910209405347648e-14,
+              0,
+              0,
+              2.7890942547922327e-15,
+              9.993285147416657,
+              -25.150000000000002,
+              9.993285147416666,
+              -25.150000000000006,
+              8.449448984896396e-15,
+              0,
+              0,
+              6.696743148162187e-16,
+              4.007007232235759,
+              -25.150000000000006,
+              4.0070072322357655,
+              -25.150000000000006,
+              6.3269248684146276e-15,
+              0,
+              0,
+              0,
+              -11.909999997019765,
+              25.150000000000006,
+              -11.909999997019764,
+              25.150000000000006,
+              3.552713678800501e-15
+            ]
+          }
+        ]
+      },
+      "id": "node:mesh:placed:copy:4",
+      "kind": "mesh",
+      "name": "Blockout Ramp",
+      "transform": {
+        "position": {
+          "x": 47.72562122712279,
+          "y": 3.8974466054254537,
+          "z": 68.31991128484874
         },
         "rotation": {
           "x": 0,

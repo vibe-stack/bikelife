@@ -34,11 +34,11 @@ type GroundState = {
   supportY: number;
 };
 
-const BIKE_AIR_ANGULAR_DAMPING = 0.42;
-const BIKE_AIR_ANGULAR_SPEED_LIMIT = 5.6;
-const BIKE_AIR_PITCH_ACCELERATION = 7.2;
-const BIKE_AIR_ROLL_ACCELERATION = 1.15;
-const BIKE_AIR_YAW_ACCELERATION = 4.6;
+const BIKE_AIR_ANGULAR_DAMPING = 0.4;
+const BIKE_AIR_ANGULAR_SPEED_LIMIT = 6.1;
+const BIKE_AIR_PITCH_ACCELERATION = 7.9;
+const BIKE_AIR_ROLL_ACCELERATION = 1.28;
+const BIKE_AIR_YAW_ACCELERATION = 5.05;
 const BIKE_CENTER_PROBE_HEIGHT = 0.45;
 const BIKE_CENTER_PROBE_MARGIN = 0.55;
 const BIKE_COAST_DECELERATION = 5.5;
@@ -53,6 +53,7 @@ const BIKE_GROUND_ANGULAR_DAMPING_LANDING = 0.95;
 const BIKE_GROUND_NORMAL_MIN_Y = 0.35;
 const BIKE_GROUND_POSITION_RESPONSE = 24;
 const BIKE_GROUND_POSITION_RESPONSE_LANDING = 4.5;
+const BIKE_GROUND_POSITION_RESPONSE_TAKEOFF = 7.5;
 const BIKE_LANDING_ANGULAR_WEIGHT = 0.18;
 const BIKE_LANDING_AIRTIME_WEIGHT = 0.7;
 const BIKE_LANDING_RECOVERY_DECAY = 1.15;
@@ -60,15 +61,27 @@ const BIKE_LANDING_VERTICAL_WEIGHT = 0.24;
 const BIKE_MAX_GROUNDED_PITCH = 0.24;
 const BIKE_MAX_GROUNDED_ROLL = 0.42;
 const BIKE_MAX_REVERSE_SPEED = 3.8;
+const BIKE_OVERSPEED_DRAG = 1.25;
 const BIKE_REVERSE_ACCELERATION = 8.5;
 const BIKE_REVERSE_DECELERATION = 12.5;
 const BIKE_SEAT_HEIGHT_MULTIPLIER = 1.12;
 const BIKE_SEAT_VERTICAL_OFFSET = 0.05;
 const BIKE_SIDE_FRICTION = 14;
-const BIKE_SLOPE_GRAVITY_ACCELERATION = 1.15;
+const BIKE_SLOPE_FREE_ROLL_DAMPING_FLAT = 2.1;
+const BIKE_SLOPE_FREE_ROLL_DAMPING_STEEP = 0.18;
+const BIKE_SLOPE_GRAVITY_ACCELERATION = 1.6;
+const BIKE_SLOPE_SIDE_DAMPING_FLAT = BIKE_SIDE_FRICTION;
+const BIKE_SLOPE_SIDE_DAMPING_STEEP = 1.1;
 const BIKE_STEP_ASSIST_SPEED = 5.6;
 const BIKE_STEER_RATE_FAST = 1.85;
 const BIKE_STEER_RATE_SLOW = 2.75;
+const BIKE_TAKEOFF_ALIGN_RESPONSE = 5.8;
+const BIKE_TAKEOFF_ANGULAR_DAMPING = 3.2;
+const BIKE_TAKEOFF_CONTACT_RELEASE = 0.34;
+const BIKE_TAKEOFF_NORMAL_END_Y = 0.88;
+const BIKE_TAKEOFF_NORMAL_START_Y = 0.58;
+const BIKE_TAKEOFF_VERTICAL_END = 4.6;
+const BIKE_TAKEOFF_VERTICAL_START = 1.4;
 const BIKE_WHEEL_PROBE_HEIGHT = 0.55;
 const BIKE_WHEEL_PROBE_MARGIN = 0.45;
 
@@ -269,13 +282,27 @@ export class BikePhysicsRig {
     this.airborneTime = 0;
     this.wasGrounded = true;
     const recoveryFactor = 1 - this.landingRecovery;
+    const bodyYaw = this.getYaw();
+    const throttleInput = input.throttle;
+    const steerInput = input.steer;
 
-    const targetSpeed = this.resolveTargetSpeed(input);
+    if (this.landingRecovery > 0.05) {
+      this.yaw = bodyYaw;
+    }
+
     const speedNormalized = MathUtils.clamp(Math.abs(speedForward) / BIKE_BOOST_SPEED, 0, 1);
     const steerRate = MathUtils.lerp(BIKE_STEER_RATE_SLOW, BIKE_STEER_RATE_FAST, speedNormalized);
-    const steerDirection = targetSpeed < -0.01 ? -1 : 1;
+    const takeoffFactor = this.resolveTakeoffFactor(currentGroundState, velocity, speedForward);
+    const steerDirection =
+      speedForward < -0.15 || (Math.abs(speedForward) < 0.15 && throttleInput < -0.05)
+        ? -1
+        : 1;
 
-    this.yaw += input.steer * steerRate * deltaSeconds * steerDirection;
+    if (Math.abs(steerInput) > 0.001) {
+      this.yaw += steerInput * steerRate * deltaSeconds * steerDirection;
+    }
+
+    const targetYaw = this.yaw;
 
     const groundedPitch = MathUtils.clamp(
       -Math.max(input.throttle, 0) * 0.05 * (0.35 + speedNormalized * 0.65)
@@ -290,10 +317,32 @@ export class BikePhysicsRig {
       BIKE_MAX_GROUNDED_ROLL
     );
 
-    const roughQuaternion = this.composeOrientation(currentGroundState.normal, this.yaw, groundedRoll, groundedPitch, scratchTargetQuaternion);
+    const currentUp = scratchUp.set(0, 1, 0).applyQuaternion(quaternion).normalize();
+    const launchGroundNormal = scratchLaunchGroundNormal
+      .copy(currentGroundState.normal)
+      .lerp(currentUp, takeoffFactor)
+      .normalize();
+    const roughQuaternion = this.composeOrientation(
+      launchGroundNormal,
+      targetYaw,
+      groundedRoll,
+      groundedPitch,
+      scratchTargetQuaternion
+    );
     const refinedGroundState = this.resolveGroundState(position, roughQuaternion);
-    const targetQuaternion = this.composeOrientation(refinedGroundState.normal, this.yaw, groundedRoll, groundedPitch, scratchTargetQuaternion);
-    const alignResponse = MathUtils.lerp(BIKE_GROUND_ALIGN_RESPONSE_LANDING, BIKE_GROUND_ALIGN_RESPONSE, recoveryFactor);
+    const refinedLaunchNormal = scratchRefinedLaunchNormal
+      .copy(refinedGroundState.normal)
+      .lerp(currentUp, takeoffFactor)
+      .normalize();
+    const targetQuaternion = this.composeOrientation(
+      refinedLaunchNormal,
+      targetYaw,
+      groundedRoll,
+      groundedPitch,
+      scratchTargetQuaternion
+    );
+    const baseAlignResponse = MathUtils.lerp(BIKE_GROUND_ALIGN_RESPONSE_LANDING, BIKE_GROUND_ALIGN_RESPONSE, recoveryFactor);
+    const alignResponse = MathUtils.lerp(baseAlignResponse, BIKE_TAKEOFF_ALIGN_RESPONSE, takeoffFactor);
     const rotationAlpha = 1 - Math.exp(-deltaSeconds * alignResponse);
     const smoothedQuaternion = scratchSmoothedQuaternion.copy(quaternion).slerp(targetQuaternion, rotationAlpha);
 
@@ -318,13 +367,46 @@ export class BikePhysicsRig {
     const currentForwardSpeed = planarVelocity.dot(driveForward);
     const currentSideSpeed = planarVelocity.dot(driveRight);
     const slopeAcceleration = this.resolveSlopeAcceleration(refinedGroundState.normal);
-    const acceleration = this.resolveAcceleration(targetSpeed, currentForwardSpeed);
-    const nextForwardSpeed =
-      moveTowards(currentForwardSpeed, targetSpeed, acceleration * deltaSeconds)
-      + slopeAcceleration.dot(driveForward) * deltaSeconds;
-    const nextSideSpeed =
-      damp(currentSideSpeed, 0, BIKE_SIDE_FRICTION, deltaSeconds)
-      + slopeAcceleration.dot(driveRight) * deltaSeconds;
+    const steepness = MathUtils.clamp(1 - refinedGroundState.normal.y, 0, 1);
+    const idleThrottle = Math.abs(throttleInput) < 0.05;
+    let nextForwardSpeed: number;
+    let nextSideSpeed: number;
+
+    if (idleThrottle) {
+      const rolledPlanarVelocity = scratchRolledPlanarVelocity.copy(planarVelocity).addScaledVector(slopeAcceleration, deltaSeconds);
+      const forwardDamping = MathUtils.lerp(
+        BIKE_SLOPE_FREE_ROLL_DAMPING_FLAT,
+        BIKE_SLOPE_FREE_ROLL_DAMPING_STEEP,
+        steepness
+      );
+      const sideDamping = MathUtils.lerp(BIKE_SLOPE_SIDE_DAMPING_FLAT, BIKE_SLOPE_SIDE_DAMPING_STEEP, steepness);
+      nextForwardSpeed = damp(rolledPlanarVelocity.dot(driveForward), 0, forwardDamping, deltaSeconds);
+      nextSideSpeed = damp(rolledPlanarVelocity.dot(driveRight), 0, sideDamping, deltaSeconds);
+    } else {
+      const slopeForwardDelta = slopeAcceleration.dot(driveForward) * deltaSeconds;
+      const slopeSideDelta = slopeAcceleration.dot(driveRight) * deltaSeconds;
+      const forwardAcceleration = throttleInput >= 0 ? BIKE_FORWARD_ACCELERATION : BIKE_REVERSE_ACCELERATION;
+      nextForwardSpeed = currentForwardSpeed + throttleInput * forwardAcceleration * deltaSeconds + slopeForwardDelta;
+
+      if (currentForwardSpeed * throttleInput < 0) {
+        nextForwardSpeed = moveTowards(nextForwardSpeed, 0, BIKE_REVERSE_DECELERATION * deltaSeconds);
+      }
+
+      const forwardSpeedCap = input.boost ? BIKE_BOOST_SPEED : BIKE_FORWARD_SPEED;
+
+      if (nextForwardSpeed > forwardSpeedCap) {
+        nextForwardSpeed -= Math.min(nextForwardSpeed - forwardSpeedCap, BIKE_OVERSPEED_DRAG * deltaSeconds);
+      }
+
+      if (nextForwardSpeed < -BIKE_MAX_REVERSE_SPEED) {
+        nextForwardSpeed += Math.min(-BIKE_MAX_REVERSE_SPEED - nextForwardSpeed, BIKE_OVERSPEED_DRAG * deltaSeconds);
+      }
+
+      nextSideSpeed =
+        damp(currentSideSpeed, 0, BIKE_SIDE_FRICTION, deltaSeconds)
+        + slopeSideDelta;
+    }
+
     const desiredVelocity = scratchDesiredVelocity
       .copy(driveForward)
       .multiplyScalar(nextForwardSpeed)
@@ -333,7 +415,8 @@ export class BikePhysicsRig {
     const supportResponseBase = refinedGroundState.supportY > position.y
       ? BIKE_GROUND_CLIMB_RESPONSE
       : BIKE_GROUND_POSITION_RESPONSE;
-    const supportResponse = MathUtils.lerp(BIKE_GROUND_POSITION_RESPONSE_LANDING, supportResponseBase, recoveryFactor);
+    const baseSupportResponse = MathUtils.lerp(BIKE_GROUND_POSITION_RESPONSE_LANDING, supportResponseBase, recoveryFactor);
+    const supportResponse = MathUtils.lerp(baseSupportResponse, BIKE_GROUND_POSITION_RESPONSE_TAKEOFF, takeoffFactor);
     const supportY = damp(position.y, refinedGroundState.supportY, supportResponse, deltaSeconds);
 
     rigidBody.setTransform(
@@ -359,13 +442,14 @@ export class BikePhysicsRig {
       Math.max(velocity.y, climbVelocity),
       desiredVelocity.z
     ]);
-    const angularDamping = MathUtils.lerp(BIKE_GROUND_ANGULAR_DAMPING_LANDING, BIKE_GROUND_ANGULAR_DAMPING, recoveryFactor);
+    const baseAngularDamping = MathUtils.lerp(BIKE_GROUND_ANGULAR_DAMPING_LANDING, BIKE_GROUND_ANGULAR_DAMPING, recoveryFactor);
+    const angularDamping = MathUtils.lerp(baseAngularDamping, BIKE_TAKEOFF_ANGULAR_DAMPING, takeoffFactor);
     const dampedAngularVelocity = scratchGroundAngularVelocity.copy(angularVelocity).multiplyScalar(
       Math.exp(-angularDamping * deltaSeconds)
     );
     rigidBody.setAngularVelocity(this.world, this.body, [
       dampedAngularVelocity.x,
-      dampedAngularVelocity.y,
+      0,
       dampedAngularVelocity.z
     ]);
   }
@@ -409,18 +493,6 @@ export class BikePhysicsRig {
     return setVector3FromPhysics(target, this.body.position);
   }
 
-  private resolveAcceleration(targetSpeed: number, currentSpeed: number) {
-    if (targetSpeed > currentSpeed) {
-      return targetSpeed >= 0 ? BIKE_FORWARD_ACCELERATION : BIKE_REVERSE_DECELERATION;
-    }
-
-    if (targetSpeed < currentSpeed) {
-      return targetSpeed >= 0 ? BIKE_COAST_DECELERATION : BIKE_REVERSE_ACCELERATION;
-    }
-
-    return BIKE_COAST_DECELERATION;
-  }
-
   private resolveSlopeAcceleration(groundNormal: Vector3) {
     const gravity = scratchGravity.set(
       this.world.settings.gravity[0] ?? 0,
@@ -435,6 +507,14 @@ export class BikePhysicsRig {
 
     const steepness = MathUtils.clamp(1 - groundNormal.y, 0, 1);
     return slopeVector.normalize().multiplyScalar(gravity.length() * steepness * BIKE_SLOPE_GRAVITY_ACCELERATION);
+  }
+
+  private resolveTakeoffFactor(groundState: GroundState, velocity: Vector3, speedForward: number) {
+    const speedWeight = MathUtils.smoothstep(Math.abs(speedForward), BIKE_FORWARD_SPEED * 0.45, BIKE_BOOST_SPEED * 0.9);
+    const steepnessRelease = 1 - MathUtils.smoothstep(groundState.normal.y, BIKE_TAKEOFF_NORMAL_START_Y, BIKE_TAKEOFF_NORMAL_END_Y);
+    const contactRelease = groundState.contactCount < 2 ? BIKE_TAKEOFF_CONTACT_RELEASE : 0;
+    const verticalRelease = MathUtils.smoothstep(Math.max(velocity.y, 0), BIKE_TAKEOFF_VERTICAL_START, BIKE_TAKEOFF_VERTICAL_END) * 0.42;
+    return MathUtils.clamp(steepnessRelease * speedWeight + contactRelease * speedWeight + verticalRelease, 0, 0.92);
   }
 
   private resolveCenterSupport(bodyPosition: Vector3) {
@@ -515,14 +595,6 @@ export class BikePhysicsRig {
     };
   }
 
-  private resolveTargetSpeed(input: BikeControlInput) {
-    if (input.throttle >= 0) {
-      return input.throttle * (input.boost ? BIKE_BOOST_SPEED : BIKE_FORWARD_SPEED);
-    }
-
-    return input.throttle * BIKE_MAX_REVERSE_SPEED;
-  }
-
   private resolveWheelContact(anchorLocal: Vector3, bodyPosition: Vector3, orientation: Quaternion, output: GroundContact) {
     const rotatedAnchor = scratchRotatedAnchor.copy(anchorLocal).applyQuaternion(orientation);
     const anchorWorld = scratchAnchorWorld.copy(bodyPosition).add(rotatedAnchor);
@@ -598,6 +670,11 @@ function damp(current: number, target: number, smoothing: number, deltaSeconds: 
   return MathUtils.lerp(current, target, 1 - Math.exp(-smoothing * deltaSeconds));
 }
 
+function dampAngle(current: number, target: number, rate: number, deltaSeconds: number) {
+  const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
+  return current + delta * (1 - Math.exp(-deltaSeconds * rate));
+}
+
 function moveTowards(current: number, target: number, maxDelta: number) {
   if (Math.abs(target - current) <= maxDelta) {
     return target;
@@ -626,8 +703,11 @@ const scratchGravity = new Vector3();
 const scratchGroundAngularVelocity = new Vector3();
 const scratchGroundNormal = new Vector3();
 const scratchHeadingForward = new Vector3();
+const scratchLaunchGroundNormal = new Vector3();
 const scratchPlanarVelocity = new Vector3();
+const scratchRefinedLaunchNormal = new Vector3();
 const scratchRight = new Vector3();
+const scratchRolledPlanarVelocity = new Vector3();
 const scratchRiderEuler = new Euler(0, 0, 0, "YXZ");
 const scratchRotatedAnchor = new Vector3();
 const scratchSmoothedQuaternion = new Quaternion();

@@ -53,8 +53,12 @@ const GROUND_MIN_NORMAL_Y = 0.45;
 const GROUND_PROBE_DISTANCE = 0.2;
 const GROUND_PROBE_HEIGHT = 0.12;
 const JUMP_GROUND_LOCK_SECONDS = 0.12;
-const MOUNTED_CAMERA_EYE_RESPONSE = 4.6;
-const MOUNTED_CAMERA_FOCUS_RESPONSE = 5.2;
+const MOUNTED_CAMERA_EYE_RESPONSE = 6.4;
+const MOUNTED_CAMERA_FOCUS_RESPONSE = 7.2;
+const MOBILE_BIKE_BOOST_THRESHOLD = 0.96;
+const MOBILE_JOYSTICK_DEADZONE = 0.18;
+const MOBILE_JOYSTICK_RESPONSE_EXPONENT = 1.85;
+const MOBILE_JOYSTICK_RUN_THRESHOLD = 0.72;
 const ON_FOOT_ANIMATION_PLAYBACK_SCALE = 2;
 const PLAYER_SCALE_FACTOR = 0.5;
 const RUN_SPEED_MULTIPLIER = 1.2;
@@ -254,13 +258,6 @@ export class StarterPlayerController {
       this.mountedBike.getRiderPosition(scratchMountedRiderPosition);
       this.mountedBike.getRiderQuaternion(scratchMountedBikeQuaternion);
       this.mountedBike.getOrientationEuler(scratchMountedBikeOrientation);
-      rigidBody.setTransform(
-        this.world,
-        this.body,
-        [scratchMountedRiderPosition.x, scratchMountedRiderPosition.y, scratchMountedRiderPosition.z],
-        [0, 0, 0, 1],
-        true
-      );
       translation.copy(scratchMountedRiderPosition);
       this.mountedSurfacePitch = scratchMountedBikeOrientation.x;
       this.yaw = scratchMountedBikeOrientation.y;
@@ -272,7 +269,8 @@ export class StarterPlayerController {
 
     this.object.position.copy(translation);
     if (this.isTouchDevice) {
-      this.orbitYaw = dampAngle(this.orbitYaw, this.yaw, 12, deltaSeconds);
+      const touchFollowYaw = this.mountedBike ? this.yaw + Math.PI : this.yaw;
+      this.orbitYaw = dampAngle(this.orbitYaw, touchFollowYaw, 12, deltaSeconds);
     }
     if (this.mountedBike) {
       this.visualRoot.rotation.set(0, Math.PI, 0, "YXZ");
@@ -301,16 +299,18 @@ export class StarterPlayerController {
     this.smoothedCameraFocus.lerp(focusTarget, 1 - Math.exp(-deltaSeconds * focusResponse));
 
     if (this.cameraMode === "fps") {
-      const cameraEye = this.mountedBike ? eyePosition : this.smoothedCameraEye;
-      const cameraFocus = this.mountedBike ? focusTarget : this.smoothedCameraFocus;
+      const cameraEye = this.mountedBike ? this.smoothedCameraEye : this.smoothedCameraEye;
+      const cameraFocus = this.mountedBike ? this.smoothedCameraFocus : this.smoothedCameraFocus;
       this.camera.position.copy(cameraEye);
       this.camera.lookAt(scratchCameraLookTarget.copy(cameraFocus).add(viewDirection));
     } else if (this.cameraMode === "third-person") {
       if (this.mountedBike) {
-        const targetCameraPosition = scratchTargetCameraPosition.copy(focusTarget).addScaledVector(viewDirection, -1.15);
-        targetCameraPosition.y += this.standingHeight * 0.04;
-        this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 8.5));
-        this.camera.lookAt(focusTarget);
+        const targetCameraPosition = scratchTargetCameraPosition
+          .copy(this.smoothedCameraEye)
+          .addScaledVector(viewDirection, -1.65);
+        targetCameraPosition.y += this.standingHeight * 0.12;
+        this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 7.4));
+        this.camera.lookAt(this.smoothedCameraFocus);
       } else {
         const followDistance = Math.max(2.15, this.standingHeight * 1.85);
         const targetCameraPosition = scratchTargetCameraPosition.copy(this.smoothedCameraEye).addScaledVector(viewDirection, -followDistance);
@@ -320,10 +320,12 @@ export class StarterPlayerController {
       }
     } else {
       if (this.mountedBike) {
-        const targetCameraPosition = scratchTargetCameraPosition.copy(focusTarget).addScaledVector(viewDirection, -2.9);
-        targetCameraPosition.y += this.standingHeight * 0.48;
-        this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 7.25));
-        this.camera.lookAt(focusTarget);
+        const targetCameraPosition = scratchTargetCameraPosition
+          .copy(this.smoothedCameraEye)
+          .addScaledVector(viewDirection, -3.4);
+        targetCameraPosition.y += this.standingHeight * 0.72;
+        this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 6.8));
+        this.camera.lookAt(this.smoothedCameraFocus);
       } else {
         const followDistance = Math.max(5.8, this.standingHeight * 3.9);
         const targetCameraPosition = scratchTargetCameraPosition.copy(this.smoothedCameraEye).addScaledVector(viewDirection, -followDistance);
@@ -354,20 +356,12 @@ export class StarterPlayerController {
     if (this.mountedBike) {
       this.resolveMountedVelocity(deltaSeconds);
       const bikeControlInput = {
-        boost: this.isTouchDevice || this.isRunning(),
+        boost: this.isRunning() || this.shouldUseMobileBikeBoost(),
         steer: this.mountedTurnInput,
         throttle: this.mountedThrottleInput,
         wheelie: (this.keyState.has("Space") || this.mobileWheelieHeld) && this.mountedThrottleInput > 0
       };
       this.mountedBike.updateBeforeStep(deltaSeconds, bikeControlInput);
-      this.mountedBike.getRiderPosition(scratchMountedRiderPosition);
-      rigidBody.setTransform(
-        this.world,
-        this.body,
-        [scratchMountedRiderPosition.x, scratchMountedRiderPosition.y, scratchMountedRiderPosition.z],
-        [0, 0, 0, 1],
-        true
-      );
       this.planarVelocity.copy(this.mountedBike.getPlanarVelocity(scratchMountedPlanarVelocity));
       this.targetPlanarVelocity.copy(this.planarVelocity);
       this.supportVelocity.set(0, 0, 0);
@@ -576,8 +570,8 @@ export class StarterPlayerController {
       zone: joystickZone
     });
     this.mobileJoystick.on("move", (event: { data: { vector: { x: number; y: number } } }) => {
-      this.mobileMoveX = event.data.vector.x;
-      this.mobileMoveY = event.data.vector.y;
+      this.mobileMoveX = shapeTouchAxis(event.data.vector.x);
+      this.mobileMoveY = shapeTouchAxis(event.data.vector.y);
     });
     this.mobileJoystick.on("end hidden", () => {
       this.mobileMoveX = 0;
@@ -628,6 +622,10 @@ export class StarterPlayerController {
     return this.keyState.has("ShiftLeft") || this.keyState.has("ShiftRight");
   }
 
+  private shouldUseMobileBikeBoost() {
+    return this.isTouchDevice && Math.abs(this.mountedThrottleInput) >= MOBILE_BIKE_BOOST_THRESHOLD;
+  }
+
   private resolveBikeDistance(translation: Vector3) {
     if (!this.bike) {
       return Number.POSITIVE_INFINITY;
@@ -644,7 +642,8 @@ export class StarterPlayerController {
     this.interactQueued = false;
 
     if (this.mountedBike) {
-      this.dismountBike(translation);
+      this.mountedBike.getRiderPosition(scratchMountedRiderPosition);
+      this.dismountBike(scratchMountedRiderPosition);
       return;
     }
 
@@ -757,7 +756,7 @@ export class StarterPlayerController {
     const inputMagnitude = Math.min(Math.hypot(moveRight, moveForward), 1);
     const maxSpeed =
       this.isTouchDevice && this.sceneSettings.player.canRun
-        ? runSpeed
+        ? MathUtils.lerp(walkSpeed, runSpeed, MathUtils.smoothstep(inputMagnitude, MOBILE_JOYSTICK_RUN_THRESHOLD, 1))
         : this.sceneSettings.player.canRun && this.isRunning()
           ? runSpeed
           : walkSpeed;
@@ -1199,6 +1198,18 @@ function damp(current: number, target: number, rate: number, deltaSeconds: numbe
 function dampAngle(current: number, target: number, rate: number, deltaSeconds: number) {
   const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
   return current + delta * (1 - Math.exp(-deltaSeconds * rate));
+}
+
+function shapeTouchAxis(value: number) {
+  const magnitude = MathUtils.clamp(Math.abs(value), 0, 1);
+
+  if (magnitude <= MOBILE_JOYSTICK_DEADZONE) {
+    return 0;
+  }
+
+  const normalizedMagnitude = (magnitude - MOBILE_JOYSTICK_DEADZONE) / (1 - MOBILE_JOYSTICK_DEADZONE);
+  const shapedMagnitude = normalizedMagnitude ** MOBILE_JOYSTICK_RESPONSE_EXPONENT;
+  return Math.sign(value) * shapedMagnitude;
 }
 
 function isTextInputTarget(target: EventTarget | null) {
