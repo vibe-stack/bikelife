@@ -6,6 +6,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import nipplejs from "nipplejs";
 import { Bone, Box3, Euler, Group, MathUtils, PerspectiveCamera, Quaternion, Vector3, type Object3D, type Skeleton } from "three";
 import { animations } from "../animations";
+import bikeSoundUrl from "../assets/bikesound.mp3?url";
 
 type StarterPlayerSpawn = {
   position: Vec3;
@@ -64,7 +65,7 @@ const GROUND_PROBE_DISTANCE = 0.2;
 const GROUND_PROBE_HEIGHT = 0.12;
 const JUMP_GROUND_LOCK_SECONDS = 0.12;
 const MOUNTED_ACCELERATION = 8.5;
-const MOUNTED_DECELERATION = 5.5;
+const MOUNTED_DECELERATION = 1.8;
 const ON_FOOT_ANIMATION_PLAYBACK_SCALE = 2;
 const PLAYER_SCALE_FACTOR = 0.5;
 const RUN_SPEED_MULTIPLIER = 1.2;
@@ -108,6 +109,10 @@ export class StarterPlayerController {
   private readonly planarVelocity = new Vector3();
   private readonly visualRoot = new Group();
   private readonly world: RAPIER.World;
+  private bikeAudioBufferPromise: Promise<AudioBuffer> | null = null;
+  private bikeAudioContext: AudioContext | null = null;
+  private bikeAudioGainNode: GainNode | null = null;
+  private bikeAudioSource: AudioBufferSourceNode | null = null;
   private animationAnimator: ReturnType<typeof createAnimatorInstance> | null = null;
   private animationBaseOffset = new Vector3();
   private animationBonesByName = new Map<string, Bone>();
@@ -206,6 +211,7 @@ export class StarterPlayerController {
 
     if (!this.bike) {
       this.mountedBike = null;
+      this.stopBikeAudio();
     }
   }
 
@@ -217,6 +223,7 @@ export class StarterPlayerController {
     window.removeEventListener("keyup", this.handleKeyUp);
     window.removeEventListener("mousemove", this.handleMouseMove);
     this.disposeMobileControls();
+    this.disposeBikeAudio();
     this.gameplayRuntime.removeActor("player");
     this.setStatus("");
   }
@@ -254,6 +261,8 @@ export class StarterPlayerController {
     if (this.mountedBike) {
       this.syncMountedBike(translation, deltaSeconds);
     }
+
+    this.updateBikeAudio();
 
     const eyePosition = new Vector3(
       translation.x,
@@ -626,6 +635,7 @@ export class StarterPlayerController {
     this.targetPlanarVelocity.set(0, 0, 0);
     this.animationRootCompensation.set(0, 0, 0);
     this.animationModeValue = 0;
+    this.stopBikeAudio();
   }
 
   private resolveMountedVelocity(deltaSeconds: number) {
@@ -816,35 +826,48 @@ export class StarterPlayerController {
     const startY = translation.y + Math.max(this.standingHeight * 4, 4);
     const rearContact = this.resolveSurfaceContact(rootX + rearSample.x, rootZ + rearSample.z, startY);
     const frontContact = this.resolveSurfaceContact(rootX + frontSample.x, rootZ + frontSample.z, startY);
+    const hasSurfaceContacts = rearContact.hit && frontContact.hit;
     const rearCenterY = rearContact.y + this.mountedBike.wheelRadius;
     const frontCenterY = frontContact.y + this.mountedBike.wheelRadius;
-    const wheelbase = Math.max(
-      0.001,
-      Math.hypot(frontContact.position.x - rearContact.position.x, frontContact.position.z - rearContact.position.z)
-    );
-    const surfacePitch = Math.atan2(frontCenterY - rearCenterY, wheelbase);
-    const surfaceNormal = scratchSurfaceNormal
-      .copy(rearContact.normal)
-      .add(frontContact.normal)
-      .normalize();
-    const localNormal = scratchLocalNormal.copy(surfaceNormal).applyQuaternion(scratchInverseYaw.copy(scratchYawQuaternion).invert());
-    const surfaceRoll = Math.atan2(localNormal.x, Math.max(localNormal.y, 0.001));
-    this.mountedSurfacePitch = surfacePitch;
-    this.mountedSurfaceRoll = surfaceRoll;
+    const targetSurfacePitch = hasSurfaceContacts
+      ? Math.atan2(frontCenterY - rearCenterY, Math.max(
+          0.001,
+          Math.hypot(frontContact.position.x - rearContact.position.x, frontContact.position.z - rearContact.position.z)
+        ))
+      : 0;
+    const targetSurfaceRoll = hasSurfaceContacts
+      ? Math.atan2(
+          scratchLocalNormal
+            .copy(
+              scratchSurfaceNormal
+                .copy(rearContact.normal)
+                .add(frontContact.normal)
+                .normalize()
+            )
+            .applyQuaternion(scratchInverseYaw.copy(scratchYawQuaternion).invert()).x,
+          Math.max(scratchLocalNormal.y, 0.001)
+        )
+      : 0;
+    this.mountedSurfacePitch = damp(this.mountedSurfacePitch, targetSurfacePitch, 10, deltaSeconds);
+    this.mountedSurfaceRoll = damp(this.mountedSurfaceRoll, targetSurfaceRoll, 10, deltaSeconds);
     const riderY = translation.y - this.footOffset + this.mountedBike.groundOffset + BIKE_MOUNT_CLEARANCE;
     scratchBikeQuaternion.setFromEuler(
       scratchBikeEuler.set(
-        this.mountedSurfacePitch + this.mountedBikePitch,
+        -this.mountedSurfacePitch + this.mountedBikePitch,
         this.yaw + BIKE_MODEL_YAW_OFFSET,
         this.mountedSurfaceRoll + this.mountedBikeLean,
         "YXZ"
       )
     );
-    const rotatedRearAnchor = scratchRotatedRearAnchor.copy(rearAnchor).applyQuaternion(scratchBikeQuaternion);
-    this.mountedBike.object.position
-      .set(rearContact.position.x, rearCenterY, rearContact.position.z)
-      .sub(rotatedRearAnchor);
-    this.mountedBike.object.position.y = Math.max(this.mountedBike.object.position.y, riderY);
+    if (hasSurfaceContacts) {
+      const rotatedRearAnchor = scratchRotatedRearAnchor.copy(rearAnchor).applyQuaternion(scratchBikeQuaternion);
+      this.mountedBike.object.position
+        .set(rearContact.position.x, rearCenterY, rearContact.position.z)
+        .sub(rotatedRearAnchor);
+      this.mountedBike.object.position.y = Math.max(this.mountedBike.object.position.y, riderY);
+    } else {
+      this.mountedBike.object.position.set(rootX, riderY, rootZ);
+    }
     this.mountedBike.object.quaternion.copy(scratchBikeQuaternion);
 
     if (this.mountedBike.wheels.length > 0) {
@@ -906,6 +929,7 @@ export class StarterPlayerController {
 
     if (!hit) {
       return {
+        hit: false,
         normal: new Vector3(0, 1, 0),
         position: new Vector3(x, startY, z),
         y: startY
@@ -914,10 +938,130 @@ export class StarterPlayerController {
 
     const y = startY - hit.timeOfImpact;
     return {
+      hit: true,
       normal: new Vector3(hit.normal.x, hit.normal.y, hit.normal.z),
       position: new Vector3(x, y, z),
       y
     };
+  }
+
+  private updateBikeAudio() {
+    if (!this.mountedBike) {
+      this.stopBikeAudio();
+      return;
+    }
+
+    const throttle = Math.max(this.mountedThrottleInput, 0);
+    const speed = this.planarVelocity.length();
+    const normalizedSpeed = MathUtils.clamp(speed / 12, 0, 1);
+    const targetGain = throttle <= 0.05 ? 0 : MathUtils.clamp(0.08 + throttle * 0.12 + normalizedSpeed * 0.09, 0, 0.29);
+    const playbackRate = 0.84 + throttle * 0.2 + normalizedSpeed * 0.45;
+
+    if (targetGain <= 0) {
+      this.updateBikeAudioGain(0);
+      return;
+    }
+
+    void this.ensureBikeAudioPlayback(playbackRate, targetGain);
+  }
+
+  private stopBikeAudio() {
+    this.updateBikeAudioGain(0);
+
+    if (!this.bikeAudioSource) {
+      return;
+    }
+
+    this.bikeAudioSource.stop();
+    this.bikeAudioSource.disconnect();
+    this.bikeAudioSource = null;
+  }
+
+  private disposeBikeAudio() {
+    this.stopBikeAudio();
+
+    if (!this.bikeAudioContext) {
+      return;
+    }
+
+    void this.bikeAudioContext.close().catch(() => {});
+    this.bikeAudioContext = null;
+    this.bikeAudioGainNode = null;
+  }
+
+  private updateBikeAudioGain(targetGain: number) {
+    if (!this.bikeAudioContext || !this.bikeAudioGainNode) {
+      return;
+    }
+
+    this.bikeAudioGainNode.gain.setTargetAtTime(targetGain, this.bikeAudioContext.currentTime, 0.08);
+  }
+
+  private async ensureBikeAudioPlayback(playbackRate: number, targetGain: number) {
+    const graph = this.ensureBikeAudioGraph();
+
+    if (!graph) {
+      return;
+    }
+
+    if (graph.context.state === "suspended") {
+      await graph.context.resume().catch(() => {});
+    }
+
+    if (!this.bikeAudioSource) {
+      const buffer = await this.loadBikeAudioBuffer(graph.context);
+
+      if (!this.mountedBike) {
+        return;
+      }
+
+      const source = graph.context.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(graph.gain);
+      source.start();
+      this.bikeAudioSource = source;
+    }
+
+    this.bikeAudioSource.playbackRate.setTargetAtTime(playbackRate, graph.context.currentTime, 0.12);
+    graph.gain.gain.setTargetAtTime(targetGain, graph.context.currentTime, 0.08);
+  }
+
+  private ensureBikeAudioGraph() {
+    if (typeof AudioContext === "undefined") {
+      return null;
+    }
+
+    if (!this.bikeAudioContext) {
+      this.bikeAudioContext = new AudioContext();
+    }
+
+    if (!this.bikeAudioGainNode) {
+      this.bikeAudioGainNode = this.bikeAudioContext.createGain();
+      this.bikeAudioGainNode.gain.value = 0;
+      this.bikeAudioGainNode.connect(this.bikeAudioContext.destination);
+    }
+
+    return {
+      context: this.bikeAudioContext,
+      gain: this.bikeAudioGainNode
+    };
+  }
+
+  private loadBikeAudioBuffer(context: AudioContext) {
+    if (!this.bikeAudioBufferPromise) {
+      this.bikeAudioBufferPromise = fetch(bikeSoundUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Failed to load bike sound from ${bikeSoundUrl}`);
+          }
+
+          return response.arrayBuffer();
+        })
+        .then((audioData) => context.decodeAudioData(audioData.slice(0)));
+    }
+
+    return this.bikeAudioBufferPromise;
   }
 
   private applyMountedPoseAdjustments() {
@@ -1019,6 +1163,7 @@ export class StarterPlayerController {
     this.mobileMoveY = 0;
     this.mobileOrbitPointerId = null;
     this.mobileWheelieHeld = false;
+    this.stopBikeAudio();
     this.releasePointerLock();
   };
 
