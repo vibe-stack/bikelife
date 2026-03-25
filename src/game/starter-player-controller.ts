@@ -48,14 +48,18 @@ const DEFAULT_BIKE_MOUNT_RADIUS = 2.4;
 const FOOT_AIR_ACCELERATION = 2.8;
 const FOOT_AIR_DECELERATION = 1.8;
 const FOOT_ACCELERATION = 15;
-const FOOT_DECELERATION = 10;
+const FOOT_DECELERATION = 18;
 const GROUND_MIN_NORMAL_Y = 0.45;
 const GROUND_PROBE_DISTANCE = 0.2;
 const GROUND_PROBE_HEIGHT = 0.12;
 const JUMP_GROUND_LOCK_SECONDS = 0.12;
+const MOUNTED_CAMERA_EYE_RESPONSE = 4.6;
+const MOUNTED_CAMERA_FOCUS_RESPONSE = 5.2;
 const ON_FOOT_ANIMATION_PLAYBACK_SCALE = 2;
 const PLAYER_SCALE_FACTOR = 0.5;
 const RUN_SPEED_MULTIPLIER = 1.2;
+const UNMOUNTED_CAMERA_EYE_RESPONSE = 9;
+const UNMOUNTED_CAMERA_FOCUS_RESPONSE = 10;
 const WALK_SPEED_MULTIPLIER = 0.72;
 
 export class StarterPlayerController {
@@ -90,6 +94,8 @@ export class StarterPlayerController {
   private readonly radius: number;
   private readonly sceneSettings: Pick<SceneSettings, "player" | "world">;
   private readonly setStatus: (message: string) => void;
+  private readonly smoothedCameraEye = new Vector3();
+  private readonly smoothedCameraFocus = new Vector3();
   private readonly standingHeight: number;
   private readonly supportVelocity = new Vector3();
   private readonly targetPlanarVelocity = new Vector3();
@@ -166,6 +172,8 @@ export class StarterPlayerController {
     this.object.add(this.visualRoot);
     this.object.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z);
     this.visualRoot.rotation.y = this.yaw;
+    this.smoothedCameraEye.copy(this.object.position).y += this.standingHeight * 0.42;
+    this.smoothedCameraFocus.copy(this.smoothedCameraEye);
 
     this.domElement.addEventListener("click", this.handleCanvasClick);
     window.addEventListener("blur", this.handleWindowBlur);
@@ -243,10 +251,23 @@ export class StarterPlayerController {
     this.bike?.syncVisuals(deltaSeconds);
 
     if (this.mountedBike) {
+      this.mountedBike.getRiderPosition(scratchMountedRiderPosition);
+      this.mountedBike.getRiderQuaternion(scratchMountedBikeQuaternion);
       this.mountedBike.getOrientationEuler(scratchMountedBikeOrientation);
+      rigidBody.setTransform(
+        this.world,
+        this.body,
+        [scratchMountedRiderPosition.x, scratchMountedRiderPosition.y, scratchMountedRiderPosition.z],
+        [0, 0, 0, 1],
+        true
+      );
+      translation.copy(scratchMountedRiderPosition);
       this.mountedSurfacePitch = scratchMountedBikeOrientation.x;
       this.yaw = scratchMountedBikeOrientation.y;
       this.mountedSurfaceRoll = scratchMountedBikeOrientation.z;
+      this.object.quaternion.copy(scratchMountedBikeQuaternion);
+    } else {
+      this.object.quaternion.identity();
     }
 
     this.object.position.copy(translation);
@@ -254,12 +275,7 @@ export class StarterPlayerController {
       this.orbitYaw = dampAngle(this.orbitYaw, this.yaw, 12, deltaSeconds);
     }
     if (this.mountedBike) {
-      this.visualRoot.rotation.set(
-        this.mountedSurfacePitch + this.mountedBikePitch * 0.16,
-        this.yaw,
-        this.mountedSurfaceRoll + this.mountedBikeLean * 0.22,
-        "YXZ"
-      );
+      this.visualRoot.rotation.set(0, Math.PI, 0, "YXZ");
     } else {
       this.visualRoot.rotation.set(0, this.yaw, 0);
     }
@@ -279,25 +295,30 @@ export class StarterPlayerController {
       focusTarget.addScaledVector(scratchYawForward.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw)), 0.9);
     }
 
+    const eyeResponse = this.mountedBike ? MOUNTED_CAMERA_EYE_RESPONSE : UNMOUNTED_CAMERA_EYE_RESPONSE;
+    const focusResponse = this.mountedBike ? MOUNTED_CAMERA_FOCUS_RESPONSE : UNMOUNTED_CAMERA_FOCUS_RESPONSE;
+    this.smoothedCameraEye.lerp(eyePosition, 1 - Math.exp(-deltaSeconds * eyeResponse));
+    this.smoothedCameraFocus.lerp(focusTarget, 1 - Math.exp(-deltaSeconds * focusResponse));
+
     if (this.cameraMode === "fps") {
-      this.camera.position.copy(eyePosition);
-      this.camera.lookAt(focusTarget.clone().add(viewDirection));
+      this.camera.position.copy(this.smoothedCameraEye);
+      this.camera.lookAt(scratchCameraLookTarget.copy(this.smoothedCameraFocus).add(viewDirection));
     } else if (this.cameraMode === "third-person") {
       const followDistance = this.mountedBike
-        ? Math.max(2.6, this.standingHeight * 2.05)
+        ? Math.max(1.8, this.standingHeight * 1.55)
         : Math.max(2.15, this.standingHeight * 1.85);
-      const targetCameraPosition = eyePosition.clone().addScaledVector(viewDirection, -followDistance);
-      targetCameraPosition.y += this.standingHeight * (this.mountedBike ? 0.17 : 0.13);
-      this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 10));
-      this.camera.lookAt(focusTarget);
+      const targetCameraPosition = scratchTargetCameraPosition.copy(this.smoothedCameraEye).addScaledVector(viewDirection, -followDistance);
+      targetCameraPosition.y += this.standingHeight * (this.mountedBike ? 0.1 : 0.13);
+      this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * (this.mountedBike ? 4.8 : 8)));
+      this.camera.lookAt(this.smoothedCameraFocus);
     } else {
       const followDistance = this.mountedBike
-        ? Math.max(7.2, this.standingHeight * 4.2)
+        ? Math.max(5.2, this.standingHeight * 3.15)
         : Math.max(5.8, this.standingHeight * 3.9);
-      const targetCameraPosition = eyePosition.clone().addScaledVector(viewDirection, -followDistance);
-      targetCameraPosition.y += this.standingHeight * (this.mountedBike ? 1.3 : 1.18);
-      this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * 8));
-      this.camera.lookAt(focusTarget);
+      const targetCameraPosition = scratchTargetCameraPosition.copy(this.smoothedCameraEye).addScaledVector(viewDirection, -followDistance);
+      targetCameraPosition.y += this.standingHeight * (this.mountedBike ? 0.92 : 1.18);
+      this.camera.position.lerp(targetCameraPosition, 1 - Math.exp(-deltaSeconds * (this.mountedBike ? 4.4 : 7)));
+      this.camera.lookAt(this.smoothedCameraFocus);
     }
 
     this.updateAnimation(deltaSeconds);
@@ -320,12 +341,13 @@ export class StarterPlayerController {
 
     if (this.mountedBike) {
       this.resolveMountedVelocity(deltaSeconds);
-      this.mountedBike.updateBeforeStep(deltaSeconds, {
+      const bikeControlInput = {
         boost: this.isTouchDevice || this.isRunning(),
         steer: this.mountedTurnInput,
         throttle: this.mountedThrottleInput,
         wheelie: (this.keyState.has("Space") || this.mobileWheelieHeld) && this.mountedThrottleInput > 0
-      });
+      };
+      this.mountedBike.updateBeforeStep(deltaSeconds, bikeControlInput);
       this.mountedBike.getRiderPosition(scratchMountedRiderPosition);
       rigidBody.setTransform(
         this.world,
@@ -340,6 +362,13 @@ export class StarterPlayerController {
       this.jumpQueued = false;
       return;
     }
+
+    this.bike?.updateBeforeStep(deltaSeconds, {
+      boost: false,
+      steer: 0,
+      throttle: 0,
+      wheelie: false
+    });
 
     this.resolveOnFootVelocity(deltaSeconds);
 
@@ -359,6 +388,10 @@ export class StarterPlayerController {
 
     const planarRate = this.resolvePlanarVelocityRate(grounded, this.targetPlanarVelocity.lengthSq() > 0);
     this.planarVelocity.lerp(this.targetPlanarVelocity, 1 - Math.exp(-deltaSeconds * planarRate));
+
+    if (grounded && this.targetPlanarVelocity.lengthSq() < 1e-5 && this.planarVelocity.lengthSq() < 0.0025) {
+      this.planarVelocity.set(0, 0, 0);
+    }
 
     rigidBody.setLinearVelocity(this.world, this.body, [
       this.planarVelocity.x + this.supportVelocity.x,
@@ -638,16 +671,16 @@ export class StarterPlayerController {
       return;
     }
 
-    const bikeVelocity = setVector3FromPhysics(scratchBikeVelocity, this.mountedBike.body.motionProperties.linearVelocity);
     const bikeYaw = this.mountedBike.getYaw();
     const right = scratchRight.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
     const bikeX = translation.x + right.x * 1.35;
     const bikeZ = translation.z + right.z * 1.35;
     const groundY = this.resolveSurfaceContact(bikeX, bikeZ, translation.y + 2).y + this.standingHeight * 0.5 + 0.04;
     this.mountedBike.setMounted(false);
+    this.mountedBike.resetToUpright();
     this.setPlayerMountedState(false);
     rigidBody.setTransform(this.world, this.body, [bikeX, groundY, bikeZ], [0, 0, 0, 1], true);
-    rigidBody.setLinearVelocity(this.world, this.body, [bikeVelocity.x * 0.45, Math.max(0, bikeVelocity.y), bikeVelocity.z * 0.45]);
+    rigidBody.setLinearVelocity(this.world, this.body, [0, 0, 0]);
     this.mountedBike = null;
     this.mountedBikeLean = 0;
     this.mountedBikePitch = 0;
@@ -665,7 +698,7 @@ export class StarterPlayerController {
   }
 
   private resolveMountedVelocity(deltaSeconds: number) {
-    const turnInput = this.getMoveRightInput();
+    const turnInput = -this.getMoveRightInput();
     this.mountedTurnInput = turnInput;
 
     const throttle = this.getMoveForwardInput();
@@ -682,7 +715,7 @@ export class StarterPlayerController {
     const targetWheelie = wheelieHeld ? 0.12 + normalizedSpeed * 0.2 : 0;
     const targetLean = -turnInput * (0.045 + normalizedSpeed * 0.16);
     const targetPitch =
-      -targetWheelie - Math.max(throttle, 0) * normalizedSpeed * 0.06 + Math.max(-throttle, 0) * 0.08;
+      -targetWheelie + Math.max(throttle, 0) * normalizedSpeed * 0.035 - Math.max(-throttle, 0) * 0.06;
 
     this.mountedBikeWheelie = damp(this.mountedBikeWheelie, targetWheelie, BIKE_WHEELIE_RESPONSE, deltaSeconds);
     this.mountedBikeLean = damp(this.mountedBikeLean, targetLean, BIKE_ROLL_RESPONSE, deltaSeconds);
@@ -1021,23 +1054,13 @@ export class StarterPlayerController {
   }
 
   private applyMountedPoseAdjustments() {
-    if (!this.mountedBike || this.mountedCounterTiltBones.length === 0) {
+    if (!this.mountedBike) {
       return;
-    }
-
-    const leanAmount = -(this.mountedSurfaceRoll + this.mountedBikeLean) * 0.22;
-    const pitchAmount = -(this.mountedSurfacePitch + this.mountedBikePitch) * 0.12;
-    scratchLeanQuaternion.setFromAxisAngle(scratchForwardAxis, leanAmount);
-    scratchPitchQuaternion.setFromAxisAngle(scratchRightAxis, pitchAmount);
-
-    for (const bone of this.mountedCounterTiltBones) {
-      bone.quaternion.multiply(scratchLeanQuaternion).multiply(scratchPitchQuaternion);
-      bone.updateMatrix();
     }
 
     if (this.mountedHandleBones.length > 0) {
       const handleLeanAmount = this.mountedBikeLean * 0.38;
-      const handlePitchAmount = this.mountedBikePitch * 0.24;
+      const handlePitchAmount = this.mountedBikePitch * 0.12;
       scratchLeanQuaternion.setFromAxisAngle(scratchForwardAxis, handleLeanAmount);
       scratchPitchQuaternion.setFromAxisAngle(scratchRightAxis, handlePitchAmount);
 
@@ -1047,7 +1070,7 @@ export class StarterPlayerController {
       }
     }
 
-    [...this.mountedCounterTiltBones, ...this.mountedHandleBones]
+    [...this.mountedHandleBones]
       .filter((bone) => !(bone.parent instanceof Bone))
       .forEach((bone) => bone.updateMatrixWorld(true));
 
@@ -1199,14 +1222,15 @@ function yawFromVector(vector: Vector3) {
 const scratchFocusTarget = new Vector3();
 const scratchBikeEuler = new Euler(0, 0, 0, "YXZ");
 const scratchBikeQuaternion = new Quaternion();
-const scratchBikeVelocity = new Vector3();
 const scratchBodyTranslation = new Vector3();
+const scratchCameraLookTarget = new Vector3();
 const scratchCurrentVelocity = new Vector3();
 const scratchForward = new Vector3();
 const scratchForwardAxis = new Vector3(0, 0, 1);
 const scratchLeanQuaternion = new Quaternion();
 const scratchLocalNormal = new Vector3();
 const scratchLinearVelocity = new Vector3();
+const scratchMountedBikeQuaternion = new Quaternion();
 const scratchMountedBikeOrientation = new Vector3();
 const scratchMountedPlanarVelocity = new Vector3();
 const scratchMountedRiderPosition = new Vector3();
@@ -1217,6 +1241,7 @@ const scratchRearPivotWorld = new Vector3();
 const scratchRight = new Vector3();
 const scratchRightAxis = new Vector3(1, 0, 0);
 const scratchRotatedRearAnchor = new Vector3();
+const scratchTargetCameraPosition = new Vector3();
 const scratchFrontSample = new Vector3();
 const scratchInverseYaw = new Quaternion();
 const scratchSurfaceNormal = new Vector3();

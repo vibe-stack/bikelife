@@ -108,6 +108,7 @@ export function setQuaternionFromPhysics(target: Quaternion, value: readonly num
 export function raycastClosest(options: {
   direction: { x: number; y: number; z: number };
   excludeBody?: PhysicsBody;
+  excludeObjectLayers?: number[];
   length: number;
   origin: { x: number; y: number; z: number };
   world: PhysicsWorld;
@@ -118,6 +119,10 @@ export function raycastClosest(options: {
 
   if (options.excludeBody) {
     queryFilter.bodyFilter = (candidate) => candidate.id !== options.excludeBody?.id;
+  }
+
+  for (const objectLayer of options.excludeObjectLayers ?? []) {
+    crashFilter.disableObjectLayer(queryFilter, options.world.settings.layers, objectLayer);
   }
 
   castRay(
