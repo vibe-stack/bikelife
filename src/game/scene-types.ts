@@ -2,8 +2,8 @@ import type { GameplayRuntime, GameplayRuntimeSystemRegistration } from "@ggez/g
 import type { SceneSettings } from "@ggez/shared";
 import type { RuntimeScene } from "@ggez/runtime-format";
 import type { ThreeRuntimeSceneInstance } from "@ggez/three-runtime";
-import type RAPIER from "@dimforge/rapier3d-compat";
 import type { PerspectiveCamera, Scene, WebGLRenderer } from "three";
+import type { PhysicsWorld } from "./physics";
 import type { StarterPlayerController } from "./starter-player-controller";
 import type { RuntimePhysicsSession } from "./runtime-physics";
 
@@ -20,7 +20,7 @@ export type GameSceneLifecycle = {
 export type GameSceneBootstrapContext = {
   camera: PerspectiveCamera;
   gotoScene: (sceneId: string) => Promise<void>;
-  physicsWorld: RAPIER.World;
+  physicsWorld: PhysicsWorld;
   renderer: WebGLRenderer;
   runtimeScene: ThreeRuntimeSceneInstance;
   scene: Scene;

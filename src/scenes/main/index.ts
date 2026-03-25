@@ -1,21 +1,10 @@
-import RAPIER from "@dimforge/rapier3d-compat";
 import bikeModelUrl from "../../assets/bike.glb?url";
+import sceneManifestUrl from "./scene.runtime.json?url";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { Box3, Color, DirectionalLight, HemisphereLight, Mesh, Vector3, type Object3D } from "three";
-import {
-  createLazyBundledRuntimeSceneSource,
-  defineGameScene,
-  normalizeBundledAssetUrls
-} from "../../game/runtime-scene-sources";
-
-const assetUrls = normalizeBundledAssetUrls(
-  import.meta.glob("./assets/**/*", {
-    eager: true,
-    import: "default",
-    query: "?url"
-  }) as Record<string, string>
-);
+import { raycastClosest, type PhysicsWorld } from "../../game/physics";
+import { createPublicRuntimeSceneSource, defineGameScene } from "../../game/runtime-scene-sources";
 
 const bikeLoader = new GLTFLoader();
 bikeLoader.setMeshoptDecoder(MeshoptDecoder);
@@ -130,10 +119,7 @@ export const mainScene = defineGameScene({
       }
     };
   },
-  source: createLazyBundledRuntimeSceneSource({
-    assetUrls,
-    loadManifestText: () => import("./scene.runtime.json?raw").then((module) => module.default)
-  }),
+  source: createPublicRuntimeSceneSource(sceneManifestUrl),
   title: "Main"
 });
 
@@ -176,10 +162,14 @@ function findWheelObject(root: Object3D, exactNames: string[], pattern: RegExp) 
   return matched;
 }
 
-function resolveGroundHeight(world: RAPIER.World, x: number, z: number, startY: number, fallbackY: number) {
-  const ray = new RAPIER.Ray({ x, y: startY, z }, { x: 0, y: -1, z: 0 });
-  const hit = world.castRay(ray, 20, false);
-  return hit ? startY - hit.timeOfImpact : fallbackY;
+function resolveGroundHeight(world: PhysicsWorld, x: number, z: number, startY: number, fallbackY: number) {
+  const hit = raycastClosest({
+    direction: { x: 0, y: -1, z: 0 },
+    length: 20,
+    origin: { x, y: startY, z },
+    world
+  });
+  return hit ? hit.point.y : fallbackY;
 }
 
 function resolveBikeGroundOffset(bike: Object3D) {

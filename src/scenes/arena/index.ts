@@ -1,16 +1,5 @@
-import {
-  createLazyBundledRuntimeSceneSource,
-  defineGameScene,
-  normalizeBundledAssetUrls
-} from "../../game/runtime-scene-sources";
-
-const assetUrls = normalizeBundledAssetUrls(
-  import.meta.glob("./assets/**/*", {
-    eager: true,
-    import: "default",
-    query: "?url"
-  }) as Record<string, string>
-);
+import sceneManifestUrl from "./scene.runtime.json?url";
+import { createPublicRuntimeSceneSource, defineGameScene } from "../../game/runtime-scene-sources";
 
 export const arenaScene = defineGameScene({
   id: "arena",
@@ -33,9 +22,6 @@ export const arenaScene = defineGameScene({
       }
     };
   },
-  source: createLazyBundledRuntimeSceneSource({
-    assetUrls,
-    loadManifestText: () => import("./scene.runtime.json?raw").then((module) => module.default)
-  }),
+  source: createPublicRuntimeSceneSource(sceneManifestUrl),
   title: "Arena Scene"
 });

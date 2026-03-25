@@ -2,11 +2,13 @@ import type { GameplayRuntime } from "@ggez/gameplay-runtime";
 import { copyPose, createPoseBufferFromRig, type PoseBuffer } from "@ggez/anim-core";
 import { createAnimatorInstance } from "@ggez/anim-runtime";
 import { vec3, type SceneSettings, type Vec3 } from "@ggez/shared";
-import RAPIER from "@dimforge/rapier3d-compat";
+import { capsule, dof, MotionQuality, MotionType, rigidBody } from "crashcat";
 import nipplejs from "nipplejs";
 import { Bone, Box3, Euler, Group, MathUtils, PerspectiveCamera, Quaternion, Vector3, type Object3D, type Skeleton } from "three";
 import { animations } from "../animations";
 import bikeSoundUrl from "../assets/bikesound.mp3?url";
+import { BikePhysicsRig } from "./bike-physics";
+import { raycastClosest, setVector3FromPhysics, type PhysicsBody, type PhysicsWorld } from "./physics";
 
 type StarterPlayerSpawn = {
   position: Vec3;
@@ -23,15 +25,7 @@ export type StarterPlayerBike = {
   wheels?: Object3D[];
 };
 
-type RegisteredBike = {
-  frontWheelAnchor: Vector3;
-  groundOffset: number;
-  mountRadius: number;
-  object: Object3D;
-  rearWheelAnchor: Vector3;
-  wheelRadius: number;
-  wheels: Object3D[];
-};
+type RegisteredBike = BikePhysicsRig;
 
 type StarterPlayerControllerOptions = {
   camera: PerspectiveCamera;
@@ -41,19 +35,14 @@ type StarterPlayerControllerOptions = {
   sceneSettings: Pick<SceneSettings, "player" | "world">;
   setStatus: (message: string) => void;
   spawn: StarterPlayerSpawn;
-  world: RAPIER.World;
+  world: PhysicsWorld;
 };
 
 const BIKE_CRUISE_SPEED_BONUS = 2;
 const BIKE_INTERACT_KEY = "KeyF";
-const BIKE_MOUNT_CLEARANCE = 0.02;
-const BIKE_MOUNT_OFFSET = 0;
-const BIKE_MODEL_YAW_OFFSET = Math.PI;
 const BIKE_PITCH_RESPONSE = 7;
 const BIKE_REVERSE_MULTIPLIER = 0.45;
 const BIKE_ROLL_RESPONSE = 8;
-const BIKE_TURN_SPEED = 2.6;
-const BIKE_WHEELIE_FORWARD_SHIFT = 2;
 const BIKE_WHEELIE_RESPONSE = 6;
 const DEFAULT_BIKE_MOUNT_RADIUS = 2.4;
 const FOOT_AIR_ACCELERATION = 2.8;
@@ -64,8 +53,6 @@ const GROUND_MIN_NORMAL_Y = 0.45;
 const GROUND_PROBE_DISTANCE = 0.2;
 const GROUND_PROBE_HEIGHT = 0.12;
 const JUMP_GROUND_LOCK_SECONDS = 0.12;
-const MOUNTED_ACCELERATION = 8.5;
-const MOUNTED_DECELERATION = 1.8;
 const ON_FOOT_ANIMATION_PLAYBACK_SCALE = 2;
 const PLAYER_SCALE_FACTOR = 0.5;
 const RUN_SPEED_MULTIPLIER = 1.2;
@@ -74,7 +61,7 @@ const WALK_SPEED_MULTIPLIER = 0.72;
 export class StarterPlayerController {
   readonly object = new Group();
 
-  private readonly body: RAPIER.RigidBody;
+  private readonly body: PhysicsBody;
   private readonly camera: PerspectiveCamera;
   private cameraMode: SceneSettings["player"]["cameraMode"];
   private readonly domElement: HTMLCanvasElement;
@@ -108,7 +95,7 @@ export class StarterPlayerController {
   private readonly targetPlanarVelocity = new Vector3();
   private readonly planarVelocity = new Vector3();
   private readonly visualRoot = new Group();
-  private readonly world: RAPIER.World;
+  private readonly world: PhysicsWorld;
   private bikeAudioBufferPromise: Promise<AudioBuffer> | null = null;
   private bikeAudioContext: AudioContext | null = null;
   private bikeAudioGainNode: GainNode | null = null;
@@ -164,14 +151,17 @@ export class StarterPlayerController {
       y: options.spawn.position.y + this.standingHeight * 0.5 + 0.04,
       z: options.spawn.position.z
     };
-    const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
-      .setTranslation(spawnPosition.x, spawnPosition.y, spawnPosition.z)
-      .setCanSleep(false)
-      .setCcdEnabled(true)
-      .setLinearDamping(0.8);
-    this.body = this.world.createRigidBody(bodyDesc);
-    this.body.lockRotations(true, true);
-    this.world.createCollider(RAPIER.ColliderDesc.capsule(this.halfHeight, this.radius).setFriction(0), this.body);
+    this.body = rigidBody.create(this.world, {
+      allowSleeping: false,
+      allowedDegreesOfFreedom: dof(true, true, true, false, false, false),
+      friction: 0,
+      linearDamping: 0.8,
+      motionQuality: MotionQuality.LINEAR_CAST,
+      motionType: MotionType.DYNAMIC,
+      objectLayer: this.world.gameLayers.movingObjectLayer,
+      position: [spawnPosition.x, spawnPosition.y, spawnPosition.z],
+      shape: capsule.create({ halfHeightOfCylinder: this.halfHeight, radius: this.radius })
+    });
 
     this.object.add(this.visualRoot);
     this.object.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z);
@@ -189,8 +179,9 @@ export class StarterPlayerController {
   }
 
   attachBike(bike: StarterPlayerBike | null) {
-        this.bike = bike
-      ? {
+    this.bike?.dispose();
+    this.bike = bike
+      ? new BikePhysicsRig({
           frontWheelAnchor: new Vector3(
             bike.frontWheelAnchor?.x ?? 0,
             bike.frontWheelAnchor?.y ?? 0,
@@ -205,11 +196,15 @@ export class StarterPlayerController {
             bike.rearWheelAnchor?.z ?? 0
           ),
           wheelRadius: bike.wheelRadius ?? 0.34,
-          wheels: bike.wheels ?? []
-        }
+          wheels: bike.wheels ?? [],
+          world: this.world
+        })
       : null;
 
     if (!this.bike) {
+      if (this.mountedBike) {
+        this.setPlayerMountedState(false);
+      }
       this.mountedBike = null;
       this.stopBikeAudio();
     }
@@ -223,6 +218,9 @@ export class StarterPlayerController {
     window.removeEventListener("keyup", this.handleKeyUp);
     window.removeEventListener("mousemove", this.handleMouseMove);
     this.disposeMobileControls();
+    this.bike?.dispose();
+    this.bike = null;
+    this.mountedBike = null;
     this.disposeBikeAudio();
     this.gameplayRuntime.removeActor("player");
     this.setStatus("");
@@ -241,26 +239,31 @@ export class StarterPlayerController {
   }
 
   updateAfterStep(deltaSeconds: number) {
-    const translation = this.body.translation();
-    this.object.position.set(translation.x, translation.y, translation.z);
+    const translation = setVector3FromPhysics(scratchBodyTranslation, this.body.position);
+    this.bike?.syncVisuals(deltaSeconds);
+
+    if (this.mountedBike) {
+      this.mountedBike.getOrientationEuler(scratchMountedBikeOrientation);
+      this.mountedSurfacePitch = scratchMountedBikeOrientation.x;
+      this.yaw = scratchMountedBikeOrientation.y;
+      this.mountedSurfaceRoll = scratchMountedBikeOrientation.z;
+    }
+
+    this.object.position.copy(translation);
     if (this.isTouchDevice) {
       this.orbitYaw = dampAngle(this.orbitYaw, this.yaw, 12, deltaSeconds);
     }
     if (this.mountedBike) {
       this.visualRoot.rotation.set(
-        (this.mountedSurfacePitch + this.mountedBikePitch) * 0.35,
+        this.mountedSurfacePitch + this.mountedBikePitch * 0.16,
         this.yaw,
-        (this.mountedSurfaceRoll + this.mountedBikeLean) * 0.55,
+        this.mountedSurfaceRoll + this.mountedBikeLean * 0.22,
         "YXZ"
       );
     } else {
       this.visualRoot.rotation.set(0, this.yaw, 0);
     }
     this.visualRoot.visible = this.cameraMode !== "fps";
-
-    if (this.mountedBike) {
-      this.syncMountedBike(translation, deltaSeconds);
-    }
 
     this.updateBikeAudio();
 
@@ -311,26 +314,45 @@ export class StarterPlayerController {
 
   updateBeforeStep(deltaSeconds: number) {
     this.jumpGroundLockRemaining = Math.max(0, this.jumpGroundLockRemaining - deltaSeconds);
-    const translation = this.body.translation();
-    const linearVelocity = this.body.linvel();
-    const groundedHit = this.jumpGroundLockRemaining > 0 ? undefined : this.resolveGroundHit(translation);
-    const grounded = groundedHit !== undefined;
+    const translation = setVector3FromPhysics(scratchBodyTranslation, this.body.position);
 
     this.resolveBikeInteraction(translation);
 
     if (this.mountedBike) {
       this.resolveMountedVelocity(deltaSeconds);
-    } else {
-      this.resolveOnFootVelocity(deltaSeconds);
+      this.mountedBike.updateBeforeStep(deltaSeconds, {
+        boost: this.isTouchDevice || this.isRunning(),
+        steer: this.mountedTurnInput,
+        throttle: this.mountedThrottleInput,
+        wheelie: (this.keyState.has("Space") || this.mobileWheelieHeld) && this.mountedThrottleInput > 0
+      });
+      this.mountedBike.getRiderPosition(scratchMountedRiderPosition);
+      rigidBody.setTransform(
+        this.world,
+        this.body,
+        [scratchMountedRiderPosition.x, scratchMountedRiderPosition.y, scratchMountedRiderPosition.z],
+        [0, 0, 0, 1],
+        true
+      );
+      this.planarVelocity.copy(this.mountedBike.getPlanarVelocity(scratchMountedPlanarVelocity));
+      this.targetPlanarVelocity.copy(this.planarVelocity);
+      this.supportVelocity.set(0, 0, 0);
+      this.jumpQueued = false;
+      return;
     }
 
-    if (groundedHit?.collider.parent()) {
-      const supportBody = groundedHit.collider.parent();
+    this.resolveOnFootVelocity(deltaSeconds);
 
-      if (supportBody) {
-        const velocity = supportBody.linvel();
-        this.supportVelocity.set(velocity.x, velocity.y, velocity.z);
-      }
+    const linearVelocity = setVector3FromPhysics(scratchLinearVelocity, this.body.motionProperties.linearVelocity);
+    const groundedHit = this.jumpGroundLockRemaining > 0 ? undefined : this.resolveGroundHit(translation);
+    const grounded = groundedHit !== undefined;
+
+    if (groundedHit?.body) {
+      this.supportVelocity.set(
+        groundedHit.body.motionProperties.linearVelocity[0] ?? 0,
+        groundedHit.body.motionProperties.linearVelocity[1] ?? 0,
+        groundedHit.body.motionProperties.linearVelocity[2] ?? 0
+      );
     } else {
       this.supportVelocity.set(0, 0, 0);
     }
@@ -338,13 +360,11 @@ export class StarterPlayerController {
     const planarRate = this.resolvePlanarVelocityRate(grounded, this.targetPlanarVelocity.lengthSq() > 0);
     this.planarVelocity.lerp(this.targetPlanarVelocity, 1 - Math.exp(-deltaSeconds * planarRate));
 
-    this.body.setLinvel(
-      {
-        x: this.planarVelocity.x + this.supportVelocity.x,
-        y: grounded && linearVelocity.y <= this.supportVelocity.y ? this.supportVelocity.y : linearVelocity.y,
-        z: this.planarVelocity.z + this.supportVelocity.z
-      },
-      true
+    rigidBody.setLinearVelocity(this.world, this.body, [
+      this.planarVelocity.x + this.supportVelocity.x,
+      grounded && linearVelocity.y <= this.supportVelocity.y ? this.supportVelocity.y : linearVelocity.y,
+      this.planarVelocity.z + this.supportVelocity.z
+    ]
     );
 
     if (this.jumpQueued) {
@@ -357,15 +377,12 @@ export class StarterPlayerController {
             this.sceneSettings.world.gravity.z
           )
         );
-        const currentVelocity = this.body.linvel();
-        this.body.setLinvel(
-          {
-            x: currentVelocity.x,
-            y: this.supportVelocity.y + Math.sqrt(2 * gravityMagnitude * this.sceneSettings.player.jumpHeight),
-            z: currentVelocity.z
-          },
-          true
-        );
+        const currentVelocity = setVector3FromPhysics(scratchCurrentVelocity, this.body.motionProperties.linearVelocity);
+        rigidBody.setLinearVelocity(this.world, this.body, [
+          currentVelocity.x,
+          this.supportVelocity.y + Math.sqrt(2 * gravityMagnitude * this.sceneSettings.player.jumpHeight),
+          currentVelocity.z
+        ]);
         this.jumpGroundLockRemaining = JUMP_GROUND_LOCK_SECONDS;
       }
 
@@ -566,18 +583,15 @@ export class StarterPlayerController {
     return this.keyState.has("ShiftLeft") || this.keyState.has("ShiftRight");
   }
 
-  private resolveBikeDistance(translation: ReturnType<RAPIER.RigidBody["translation"]>) {
+  private resolveBikeDistance(translation: Vector3) {
     if (!this.bike) {
       return Number.POSITIVE_INFINITY;
     }
 
-    return Math.hypot(
-      translation.x - this.bike.object.position.x,
-      translation.z - this.bike.object.position.z
-    );
+    return this.bike.getDistanceTo(translation);
   }
 
-  private resolveBikeInteraction(translation: ReturnType<RAPIER.RigidBody["translation"]>) {
+  private resolveBikeInteraction(translation: Vector3) {
     if (!this.interactQueued) {
       return;
     }
@@ -594,6 +608,8 @@ export class StarterPlayerController {
     }
 
     this.mountedBike = this.bike;
+    this.mountedBike.setMounted(true);
+    this.setPlayerMountedState(true);
     this.planarVelocity.set(0, 0, 0);
     this.targetPlanarVelocity.set(0, 0, 0);
     this.animationRootCompensation.set(0, 0, 0);
@@ -605,24 +621,33 @@ export class StarterPlayerController {
     this.mountedBikeWheelie = 0;
     this.mountedThrottleInput = 0;
     this.mountedTurnInput = 0;
-    this.syncMountedBike(translation, 0);
+    this.mountedBike.getRiderPosition(scratchMountedRiderPosition);
+    rigidBody.setTransform(
+      this.world,
+      this.body,
+      [scratchMountedRiderPosition.x, scratchMountedRiderPosition.y, scratchMountedRiderPosition.z],
+      [0, 0, 0, 1],
+      true
+    );
+    this.yaw = this.mountedBike.getYaw();
+    this.orbitYaw = this.yaw;
   }
 
-  private dismountBike(translation: ReturnType<RAPIER.RigidBody["translation"]>) {
+  private dismountBike(translation: Vector3) {
     if (!this.mountedBike) {
       return;
     }
 
+    const bikeVelocity = setVector3FromPhysics(scratchBikeVelocity, this.mountedBike.body.motionProperties.linearVelocity);
+    const bikeYaw = this.mountedBike.getYaw();
     const right = scratchRight.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
     const bikeX = translation.x + right.x * 1.35;
     const bikeZ = translation.z + right.z * 1.35;
-    const groundY = this.resolveSurfaceContact(bikeX, bikeZ, translation.y + 2).y;
-    this.mountedBike.object.position.set(
-      bikeX,
-      groundY + this.mountedBike.groundOffset + BIKE_MOUNT_CLEARANCE,
-      bikeZ
-    );
-    this.mountedBike.object.rotation.set(0, this.yaw + BIKE_MODEL_YAW_OFFSET, 0);
+    const groundY = this.resolveSurfaceContact(bikeX, bikeZ, translation.y + 2).y + this.standingHeight * 0.5 + 0.04;
+    this.mountedBike.setMounted(false);
+    this.setPlayerMountedState(false);
+    rigidBody.setTransform(this.world, this.body, [bikeX, groundY, bikeZ], [0, 0, 0, 1], true);
+    rigidBody.setLinearVelocity(this.world, this.body, [bikeVelocity.x * 0.45, Math.max(0, bikeVelocity.y), bikeVelocity.z * 0.45]);
     this.mountedBike = null;
     this.mountedBikeLean = 0;
     this.mountedBikePitch = 0;
@@ -635,17 +660,16 @@ export class StarterPlayerController {
     this.targetPlanarVelocity.set(0, 0, 0);
     this.animationRootCompensation.set(0, 0, 0);
     this.animationModeValue = 0;
+    this.yaw = bikeYaw;
     this.stopBikeAudio();
   }
 
   private resolveMountedVelocity(deltaSeconds: number) {
     const turnInput = this.getMoveRightInput();
-    this.yaw -= turnInput * BIKE_TURN_SPEED * deltaSeconds;
     this.mountedTurnInput = turnInput;
 
     const throttle = this.getMoveForwardInput();
     this.mountedThrottleInput = throttle;
-    const forward = scratchForward.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const cruiseSpeed = Math.max(
       this.sceneSettings.player.runningSpeed + BIKE_CRUISE_SPEED_BONUS,
       this.sceneSettings.player.movementSpeed + 4
@@ -668,8 +692,6 @@ export class StarterPlayerController {
       BIKE_PITCH_RESPONSE,
       deltaSeconds
     );
-
-    this.targetPlanarVelocity.copy(forward).multiplyScalar(signedSpeed);
   }
 
   private resolveOnFootVelocity(deltaSeconds: number) {
@@ -706,10 +728,6 @@ export class StarterPlayerController {
   }
 
   private resolvePlanarVelocityRate(grounded: boolean, hasMovementInput: boolean) {
-    if (this.mountedBike) {
-      return hasMovementInput ? MOUNTED_ACCELERATION : MOUNTED_DECELERATION;
-    }
-
     if (!grounded) {
       return hasMovementInput ? FOOT_AIR_ACCELERATION : FOOT_AIR_DECELERATION;
     }
@@ -809,78 +827,7 @@ export class StarterPlayerController {
     }
   }
 
-  private syncMountedBike(translation: ReturnType<RAPIER.RigidBody["translation"]>, deltaSeconds: number) {
-    if (!this.mountedBike) {
-      return;
-    }
-
-    const forward = scratchYawForward.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
-    const wheelieForwardShift = this.mountedBikeWheelie * BIKE_WHEELIE_FORWARD_SHIFT;
-    const rootX = translation.x + forward.x * (BIKE_MOUNT_OFFSET + wheelieForwardShift);
-    const rootZ = translation.z + forward.z * (BIKE_MOUNT_OFFSET + wheelieForwardShift);
-    scratchYawQuaternion.setFromEuler(scratchYawEuler.set(0, this.yaw + BIKE_MODEL_YAW_OFFSET, 0, "YXZ"));
-    const rearAnchor = this.mountedBike.rearWheelAnchor;
-    const frontAnchor = this.mountedBike.frontWheelAnchor;
-    const rearSample = scratchRearSample.copy(rearAnchor).applyQuaternion(scratchYawQuaternion);
-    const frontSample = scratchFrontSample.copy(frontAnchor).applyQuaternion(scratchYawQuaternion);
-    const startY = translation.y + Math.max(this.standingHeight * 4, 4);
-    const rearContact = this.resolveSurfaceContact(rootX + rearSample.x, rootZ + rearSample.z, startY);
-    const frontContact = this.resolveSurfaceContact(rootX + frontSample.x, rootZ + frontSample.z, startY);
-    const hasSurfaceContacts = rearContact.hit && frontContact.hit;
-    const rearCenterY = rearContact.y + this.mountedBike.wheelRadius;
-    const frontCenterY = frontContact.y + this.mountedBike.wheelRadius;
-    const targetSurfacePitch = hasSurfaceContacts
-      ? Math.atan2(frontCenterY - rearCenterY, Math.max(
-          0.001,
-          Math.hypot(frontContact.position.x - rearContact.position.x, frontContact.position.z - rearContact.position.z)
-        ))
-      : 0;
-    const targetSurfaceRoll = hasSurfaceContacts
-      ? Math.atan2(
-          scratchLocalNormal
-            .copy(
-              scratchSurfaceNormal
-                .copy(rearContact.normal)
-                .add(frontContact.normal)
-                .normalize()
-            )
-            .applyQuaternion(scratchInverseYaw.copy(scratchYawQuaternion).invert()).x,
-          Math.max(scratchLocalNormal.y, 0.001)
-        )
-      : 0;
-    this.mountedSurfacePitch = damp(this.mountedSurfacePitch, targetSurfacePitch, 10, deltaSeconds);
-    this.mountedSurfaceRoll = damp(this.mountedSurfaceRoll, targetSurfaceRoll, 10, deltaSeconds);
-    const riderY = translation.y - this.footOffset + this.mountedBike.groundOffset + BIKE_MOUNT_CLEARANCE;
-    scratchBikeQuaternion.setFromEuler(
-      scratchBikeEuler.set(
-        -this.mountedSurfacePitch + this.mountedBikePitch,
-        this.yaw + BIKE_MODEL_YAW_OFFSET,
-        this.mountedSurfaceRoll + this.mountedBikeLean,
-        "YXZ"
-      )
-    );
-    if (hasSurfaceContacts) {
-      const rotatedRearAnchor = scratchRotatedRearAnchor.copy(rearAnchor).applyQuaternion(scratchBikeQuaternion);
-      this.mountedBike.object.position
-        .set(rearContact.position.x, rearCenterY, rearContact.position.z)
-        .sub(rotatedRearAnchor);
-      this.mountedBike.object.position.y = Math.max(this.mountedBike.object.position.y, riderY);
-    } else {
-      this.mountedBike.object.position.set(rootX, riderY, rootZ);
-    }
-    this.mountedBike.object.quaternion.copy(scratchBikeQuaternion);
-
-    if (this.mountedBike.wheels.length > 0) {
-      const signedSpeed = forward.dot(this.planarVelocity);
-      const wheelSpin = signedSpeed / Math.max(this.mountedBike.wheelRadius, 0.05);
-
-      for (const wheel of this.mountedBike.wheels) {
-        wheel.rotateX(-wheelSpin * deltaSeconds);
-      }
-    }
-  }
-
-  private resolveStatusMessage(translation: ReturnType<RAPIER.RigidBody["translation"]>) {
+  private resolveStatusMessage(translation: Vector3) {
     if (this.isTouchDevice) {
       return "";
     }
@@ -896,25 +843,18 @@ export class StarterPlayerController {
     return this.resolveBikeDistance(translation) <= this.bike.mountRadius ? "Press F to ride the bike" : "";
   }
 
-  private resolveGroundHit(translation: ReturnType<RAPIER.RigidBody["translation"]>) {
-    const ray = new RAPIER.Ray(
-      {
+  private resolveGroundHit(translation: Vector3) {
+    const hit = raycastClosest({
+      direction: { x: 0, y: -1, z: 0 },
+      excludeBody: this.body,
+      length: GROUND_PROBE_DISTANCE,
+      origin: {
         x: translation.x,
         y: translation.y - this.footOffset + GROUND_PROBE_HEIGHT,
         z: translation.z
       },
-      { x: 0, y: -1, z: 0 }
-    );
-
-    const hit = this.world.castRayAndGetNormal(
-      ray,
-      GROUND_PROBE_DISTANCE,
-      false,
-      undefined,
-      undefined,
-      undefined,
-      this.body
-    );
+      world: this.world
+    });
 
     if (!hit || hit.normal.y < GROUND_MIN_NORMAL_Y) {
       return undefined;
@@ -924,8 +864,13 @@ export class StarterPlayerController {
   }
 
   private resolveSurfaceContact(x: number, z: number, startY: number) {
-    const ray = new RAPIER.Ray({ x, y: startY, z }, { x: 0, y: -1, z: 0 });
-    const hit = this.world.castRayAndGetNormal(ray, 20, false, undefined, undefined, undefined, this.body);
+    const hit = raycastClosest({
+      direction: { x: 0, y: -1, z: 0 },
+      excludeBody: this.body,
+      length: 20,
+      origin: { x, y: startY, z },
+      world: this.world
+    });
 
     if (!hit) {
       return {
@@ -936,13 +881,24 @@ export class StarterPlayerController {
       };
     }
 
-    const y = startY - hit.timeOfImpact;
+    const y = hit.point.y;
     return {
       hit: true,
-      normal: new Vector3(hit.normal.x, hit.normal.y, hit.normal.z),
-      position: new Vector3(x, y, z),
+      normal: hit.normal.clone(),
+      position: hit.point.clone(),
       y
     };
+  }
+
+  private setPlayerMountedState(mounted: boolean) {
+    rigidBody.setMotionType(this.world, this.body, mounted ? MotionType.KINEMATIC : MotionType.DYNAMIC, true);
+    rigidBody.setObjectLayer(
+      this.world,
+      this.body,
+      mounted ? this.world.gameLayers.ghostObjectLayer : this.world.gameLayers.movingObjectLayer
+    );
+    rigidBody.setLinearVelocity(this.world, this.body, [0, 0, 0]);
+    rigidBody.setAngularVelocity(this.world, this.body, [0, 0, 0]);
   }
 
   private updateBikeAudio() {
@@ -1243,10 +1199,17 @@ function yawFromVector(vector: Vector3) {
 const scratchFocusTarget = new Vector3();
 const scratchBikeEuler = new Euler(0, 0, 0, "YXZ");
 const scratchBikeQuaternion = new Quaternion();
+const scratchBikeVelocity = new Vector3();
+const scratchBodyTranslation = new Vector3();
+const scratchCurrentVelocity = new Vector3();
 const scratchForward = new Vector3();
 const scratchForwardAxis = new Vector3(0, 0, 1);
 const scratchLeanQuaternion = new Quaternion();
 const scratchLocalNormal = new Vector3();
+const scratchLinearVelocity = new Vector3();
+const scratchMountedBikeOrientation = new Vector3();
+const scratchMountedPlanarVelocity = new Vector3();
+const scratchMountedRiderPosition = new Vector3();
 const scratchPitchQuaternion = new Quaternion();
 const scratchRearAnchorOffset = new Vector3();
 const scratchRearSample = new Vector3();

@@ -10,11 +10,12 @@ import {
 } from "@ggez/gameplay-runtime";
 import type { SceneSettings, Transform } from "@ggez/shared";
 import type { ThreeRuntimeSceneInstance } from "@ggez/three-runtime";
+import { rigidBody } from "crashcat";
 import { Euler, Quaternion, type Object3D } from "three";
 import type { RuntimePhysicsSession } from "./runtime-physics";
 
 type StarterGameplayHostOptions = {
-  runtimePhysics: Pick<RuntimePhysicsSession, "getBody">;
+  runtimePhysics: Pick<RuntimePhysicsSession, "getBody" | "world">;
   runtimeScene: Pick<ThreeRuntimeSceneInstance, "nodesById">;
 };
 
@@ -59,7 +60,7 @@ export function createStarterGameplayHost(options: StarterGameplayHostOptions): 
       }
 
       if (body) {
-        applyBodyTransform(body, transform);
+        applyBodyTransform(options.runtimePhysics.world, body, transform);
       }
     }
   };
@@ -72,9 +73,14 @@ function applyTransform(object: Object3D, transform: Transform) {
   object.updateMatrixWorld(true);
 }
 
-function applyBodyTransform(body: KinematicPhysicsBody, transform: Transform) {
-  body.setNextKinematicTranslation(transform.position);
-  body.setNextKinematicRotation(
+function applyBodyTransform(world: StarterGameplayHostOptions["runtimePhysics"]["world"], body: KinematicPhysicsBody, transform: Transform) {
+  rigidBody.setTransform(
+    world,
+    body,
+    [transform.position.x, transform.position.y, transform.position.z],
     new Quaternion().setFromEuler(new Euler(transform.rotation.x, transform.rotation.y, transform.rotation.z))
+      .toArray()
+      .slice(0, 4) as [number, number, number, number],
+    true
   );
 }

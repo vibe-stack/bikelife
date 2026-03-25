@@ -4,14 +4,13 @@ import {
   type GameplayRuntime,
   type GameplayRuntimeSystemRegistration
 } from "@ggez/gameplay-runtime";
-import { createRapierPhysicsWorld, ensureRapierRuntimePhysics } from "@ggez/runtime-physics-rapier";
 import { createThreeRuntimeSceneInstance, type ThreeRuntimeSceneInstance } from "@ggez/three-runtime";
 import * as THREE from "three";
 import { frameCameraOnObject } from "./camera";
 import { createDefaultGameplaySystems, createStarterGameplayHost, mergeGameplaySystems } from "./gameplay";
+import { createPhysicsWorld, destroyPhysicsWorld, ensurePhysicsRuntime, stepPhysicsWorld, type PhysicsWorld } from "./physics";
 import { createRuntimePhysicsSession, type RuntimePhysicsSession } from "./runtime-physics";
 import type { GameSceneBootstrapContext, GameSceneDefinition, GameSceneLifecycle } from "./scene-types";
-import type RAPIER from "@dimforge/rapier3d-compat";
 import type { StarterPlayerController } from "./starter-player-controller";
 
 type GameAppOptions = {
@@ -26,7 +25,7 @@ type ActiveScene = {
   id: string;
   lifecycle: GameSceneLifecycle;
   player: StarterPlayerController | null;
-  physicsWorld: RAPIER.World;
+  physicsWorld: PhysicsWorld;
   runtimePhysics: RuntimePhysicsSession;
   runtimeScene: ThreeRuntimeSceneInstance;
 };
@@ -111,7 +110,7 @@ export function createGameApp(options: GameAppOptions) {
     while (activeScene.accumulatorSeconds >= FIXED_STEP_SECONDS) {
       activeScene.player?.updateBeforeStep(FIXED_STEP_SECONDS);
       activeScene.lifecycle.fixedUpdate?.(FIXED_STEP_SECONDS);
-      activeScene.physicsWorld.step();
+      stepPhysicsWorld(activeScene.physicsWorld, FIXED_STEP_SECONDS);
       activeScene.runtimePhysics.syncVisuals();
       activeScene.player?.updateAfterStep(FIXED_STEP_SECONDS);
       activeScene.accumulatorSeconds -= FIXED_STEP_SECONDS;
@@ -147,7 +146,7 @@ export function createGameApp(options: GameAppOptions) {
     sceneToDispose.gameplayRuntime.dispose();
     sceneToDispose.runtimeScene.dispose();
     sceneToDispose.runtimePhysics.dispose();
-    sceneToDispose.physicsWorld.free();
+    destroyPhysicsWorld(sceneToDispose.physicsWorld);
   };
 
   const loadScene = async (sceneId: string) => {
@@ -166,7 +165,7 @@ export function createGameApp(options: GameAppOptions) {
     });
 
     try {
-      await ensureRapierRuntimePhysics();
+      ensurePhysicsRuntime();
       setLoadingState({ progress: 0.16 });
       const runtimeManifest = await definition.source.load();
 
@@ -180,7 +179,7 @@ export function createGameApp(options: GameAppOptions) {
         resolveAssetUrl: ({ path }) => path
       });
       setLoadingState({ progress: 0.56 });
-      const physicsWorld = createRapierPhysicsWorld(runtimeScene.scene.settings);
+      const physicsWorld = createPhysicsWorld(runtimeScene.scene.settings);
       const runtimePhysics = createRuntimePhysicsSession({
         runtimeScene,
         world: physicsWorld
@@ -259,7 +258,7 @@ export function createGameApp(options: GameAppOptions) {
         gameplayRuntime.dispose();
         runtimeScene.dispose();
         runtimePhysics.dispose();
-        physicsWorld.free();
+        destroyPhysicsWorld(physicsWorld);
         return;
       }
 
@@ -285,7 +284,7 @@ export function createGameApp(options: GameAppOptions) {
         previousScene.gameplayRuntime.dispose();
         previousScene.runtimeScene.dispose();
         previousScene.runtimePhysics.dispose();
-        previousScene.physicsWorld.free();
+        destroyPhysicsWorld(previousScene.physicsWorld);
       }
 
       if (!customStatusApplied) {
@@ -345,7 +344,7 @@ export function createGameApp(options: GameAppOptions) {
 function createBootstrapContext(options: {
   camera: THREE.PerspectiveCamera;
   gotoScene: (sceneId: string) => Promise<void>;
-  physicsWorld: RAPIER.World;
+  physicsWorld: PhysicsWorld;
   renderer: THREE.WebGLRenderer;
   runtimeScene: ThreeRuntimeSceneInstance;
   scene: THREE.Scene;
@@ -370,7 +369,7 @@ async function createStarterPlayerController(options: {
   definition: GameSceneDefinition;
   domElement: HTMLCanvasElement;
   gameplayRuntime: GameplayRuntime;
-  physicsWorld: RAPIER.World;
+  physicsWorld: PhysicsWorld;
   runtimeScene: ThreeRuntimeSceneInstance;
   setStatus: (message: string) => void;
 }) {
