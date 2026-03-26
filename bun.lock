@@ -4,17 +4,17 @@
     "": {
       "name": "meek",
       "dependencies": {
-        "@ggez/anim-core": "^0.1.3",
-        "@ggez/anim-exporter": "^0.1.3",
-        "@ggez/anim-runtime": "^0.1.3",
-        "@ggez/anim-schema": "^0.1.3",
-        "@ggez/anim-three": "^0.1.3",
-        "@ggez/game-dev": "^0.1.3",
-        "@ggez/gameplay-runtime": "^0.1.3",
-        "@ggez/render-pipeline": "^0.1.3",
-        "@ggez/runtime-format": "^0.1.3",
-        "@ggez/shared": "^0.1.3",
-        "@ggez/three-runtime": "^0.1.3",
+        "@ggez/anim-core": "^0.1.7",
+        "@ggez/anim-exporter": "^0.1.7",
+        "@ggez/anim-runtime": "^0.1.7",
+        "@ggez/anim-schema": "^0.1.7",
+        "@ggez/anim-three": "^0.1.7",
+        "@ggez/game-dev": "^0.1.7",
+        "@ggez/gameplay-runtime": "^0.1.7",
+        "@ggez/render-pipeline": "^0.1.7",
+        "@ggez/runtime-format": "^0.1.7",
+        "@ggez/shared": "^0.1.7",
+        "@ggez/three-runtime": "^0.1.7",
         "crashcat": "^0.0.3",
         "nipplejs": "^1.0.1",
         "three": "^0.181.1",
@@ -81,35 +81,35 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.27.4", "", { "os": "win32", "cpu": "x64" }, "sha512-+knoa0BDoeXgkNvvV1vvbZX4+hizelrkwmGJBdT17t8FNPwG2lKemmuMZlmaNQ3ws3DKKCxpb4zRZEIp3UxFCg=="],
 
-    "@ggez/anim-core": ["@ggez/anim-core@0.1.3", "", { "dependencies": { "@ggez/anim-utils": "0.1.3" } }, "sha512-avzElk3QHKIqCNpo7OvmAminDCz4LjXyauUe/hAYOe6pKAe+qXZflDtqGbYiM3HzQDDm7FT9/7IbyRmHIOJLzA=="],
+    "@ggez/anim-core": ["@ggez/anim-core@0.1.7", "", { "dependencies": { "@ggez/anim-utils": "0.1.7" } }, "sha512-2KP5XLiPqBjGYWCvETXL/Uidm8T8/iQ4ppc04EvtHpLHnVCJ4wfX+G9zKuoOxYdWHQoCDJX9IV/HDDMhSDwqtg=="],
 
-    "@ggez/anim-exporter": ["@ggez/anim-exporter@0.1.3", "", { "dependencies": { "@ggez/anim-core": "0.1.3", "@ggez/anim-schema": "0.1.3" } }, "sha512-CCxySG6o255mi9LTl9R5QLPD1plrrlrp2JlqpCF9a4lQNjQJy98b8P7KMDbvzWiP5WydGHeqHRxY8YWV5z9rCA=="],
+    "@ggez/anim-exporter": ["@ggez/anim-exporter@0.1.7", "", { "dependencies": { "@ggez/anim-core": "0.1.7", "@ggez/anim-schema": "0.1.7" } }, "sha512-KxE2DE5ivwR0Y9Mq1DbPdRvBtHnXuDSlE9DWH94wcGXUurVniBs7XnfMxEMaeYJ4zIhnCrT1ZsKtkKpFsZlUhw=="],
 
-    "@ggez/anim-runtime": ["@ggez/anim-runtime@0.1.3", "", { "dependencies": { "@ggez/anim-core": "0.1.3", "@ggez/anim-schema": "0.1.3", "@ggez/anim-utils": "0.1.3" } }, "sha512-9zCox5l7WBVwWJgavux2J+4tHhOLzGfJSrmXF18gmBbO4qa54UYN2Q2xdNmLSS+NNYv6iP2ZFYiz1pWOU6UssQ=="],
+    "@ggez/anim-runtime": ["@ggez/anim-runtime@0.1.7", "", { "dependencies": { "@ggez/anim-core": "0.1.7", "@ggez/anim-schema": "0.1.7", "@ggez/anim-utils": "0.1.7" } }, "sha512-jTKXFDbHkMOnuCvdK+Xcir2wfa56ONzVxFH/GM6PFKDAylOKZ/Imx6LQ0buGwiHrWNqWBk5ukDIcH8G4+otjOA=="],
 
-    "@ggez/anim-schema": ["@ggez/anim-schema@0.1.3", "", { "dependencies": { "zod": "^3.25.76" } }, "sha512-EuJlQ14CWnVk5tT4hi7aXDQS5kU5rU3F3WsGmmK01eT2u+qzKa84vqydI3JgNVsmSw71LwxyD95LRkmSolZqoQ=="],
+    "@ggez/anim-schema": ["@ggez/anim-schema@0.1.7", "", { "dependencies": { "zod": "^3.25.76" } }, "sha512-+KDstx9wHlnwtYF5eHJfP1e7lOiaTJkWgF7+RPXnhAKU5RFrYEUGYXy7SPLenfl3ipEwyyivApll0Q25rVWILg=="],
 
-    "@ggez/anim-three": ["@ggez/anim-three@0.1.3", "", { "dependencies": { "@ggez/anim-core": "0.1.3", "@ggez/anim-runtime": "0.1.3", "@types/three": "^0.181.0", "three": "^0.181.1" } }, "sha512-akGNyu4hmXKsUlL+vvYDQ4qcBD6rx2euJXAolOet7FsG/v/2455sKN/fWqUqSuabjSWSoqz5kk6D6hcGVpArGg=="],
+    "@ggez/anim-three": ["@ggez/anim-three@0.1.7", "", { "dependencies": { "@ggez/anim-core": "0.1.7", "@ggez/anim-runtime": "0.1.7", "@types/three": "^0.181.0", "three": "^0.181.1" } }, "sha512-+UUg4cb2lR99/rJAEd+PlzaFC47x+AHpi7/GlH0m4QQn0+4sIAGTh9VXR3JxvpLa81tK/mCO2/bucf6SZO/cAQ=="],
 
-    "@ggez/anim-utils": ["@ggez/anim-utils@0.1.3", "", {}, "sha512-lvpOyuXMzfC8eXrTP0yO78ONEASt2iEs6AZaKldqgTU9X8vOwYOXSpubuqKruCC5z8jl/em3bob3ry/ZokePAw=="],
+    "@ggez/anim-utils": ["@ggez/anim-utils@0.1.7", "", {}, "sha512-Jjlt8eWL1eaDyzFlg/OshFMTbFpyQRKvBGuxKZGbVdRnI0WM/D5Tcmg52GRbTa4Q2bqVpALHiMmOAjyUhXtVPQ=="],
 
-    "@ggez/editor-core": ["@ggez/editor-core@0.1.3", "", { "dependencies": { "@ggez/geometry-kernel": "0.1.3", "@ggez/shared": "0.1.3" } }, "sha512-qVKNw/yoN+TckRCho8sUbIP+CBfsTEdC71v6ND/J6UL5mv5RIhpDarqekxeek3Ubq6Uz8KKXCCqFakm5tvJZtw=="],
+    "@ggez/editor-core": ["@ggez/editor-core@0.1.7", "", { "dependencies": { "@ggez/geometry-kernel": "0.1.7", "@ggez/shared": "0.1.7" } }, "sha512-IUS7e5PwkaxskXdZ3rlfQiFsw5CHzAkuCYcD4R919tmP0wBV7SSDpH3uo1yjQJ0UBKLcIWqW1sixvIXRDmEI3w=="],
 
-    "@ggez/game-dev": ["@ggez/game-dev@0.1.3", "", {}, "sha512-+0QluoWmdQRqHTo3k1afTUFcfjQ1Lb/lxiG03pW56ovzGF/spMwyLFc7xppSzMSTR1/sxOGu4T6hsUvTpL/ghw=="],
+    "@ggez/game-dev": ["@ggez/game-dev@0.1.7", "", {}, "sha512-YDiFPWotG5MBYQ78gd1l6le7crYHfdwFrNtPCCli0j996Rkaa/Uoftl5KnfYGZpY3vTKmMZ+NJI7TwmUVY5vJA=="],
 
-    "@ggez/gameplay-runtime": ["@ggez/gameplay-runtime@0.1.3", "", { "dependencies": { "@ggez/runtime-format": "0.1.3", "@ggez/shared": "0.1.3", "three": "^0.181.1" } }, "sha512-nFam4cvQm/m02i79H6u2VgG8sT6jM7hcdgVXyKKscnrw9XlMXTyVR8PY7cHvjASbSVxQmB5AnF1GOouo2/yh7Q=="],
+    "@ggez/gameplay-runtime": ["@ggez/gameplay-runtime@0.1.7", "", { "dependencies": { "@ggez/runtime-format": "0.1.7", "@ggez/shared": "0.1.7", "three": "^0.181.1" } }, "sha512-Z982yFtWYlF1fmhHvBA0N9QGmXdF+HarBAcK0g43B7h7SxWshRIdPft8+1XRx08fIqsjIt1e93tgK4ajpw84JQ=="],
 
-    "@ggez/geometry-kernel": ["@ggez/geometry-kernel@0.1.3", "", { "dependencies": { "@ggez/shared": "0.1.3", "clipper2-ts": "latest", "earcut": "^3.0.2" } }, "sha512-6MKSeD1AJRJ10E5Q0+ey0FpnSYJjPhQ3zG71KMFnQAdRVP/8PwD3kY0jJ1Nxb3cVRzqOY8ZLN9F5d7qJ5Gnzxw=="],
+    "@ggez/geometry-kernel": ["@ggez/geometry-kernel@0.1.7", "", { "dependencies": { "@ggez/shared": "0.1.7", "clipper2-ts": "latest", "earcut": "^3.0.2" } }, "sha512-K+bmg9lY1cl0r0DmJaxAqJ+Qqs8xJe9XFlC0boMCoA0IeMANDCs8lfpIw8CivZf8xrMBcRV9hks8Sm4i5HaA7A=="],
 
-    "@ggez/render-pipeline": ["@ggez/render-pipeline@0.1.3", "", { "dependencies": { "@ggez/geometry-kernel": "0.1.3", "@ggez/shared": "0.1.3", "earcut": "^3.0.2", "three": "^0.181.1", "three-mesh-bvh": "^0.9.2" } }, "sha512-Xdd3q5FLUgyw9pB5CvvyuCIRKAFdDSggCnYtFNqNZ6ANANnxnEydBVkq7PD+yiLMw+c5OhJjxr2Li21/r8XXbQ=="],
+    "@ggez/render-pipeline": ["@ggez/render-pipeline@0.1.7", "", { "dependencies": { "@ggez/geometry-kernel": "0.1.7", "@ggez/shared": "0.1.7", "earcut": "^3.0.2", "three": "^0.181.1", "three-mesh-bvh": "^0.9.2" } }, "sha512-YtLDuERcIK/kKujh4StUzp1vESllQCug7/0oG3P3KKAc6lX+sa+5bai/iuxdqW9kRt8wL9mhJzsJwkt9U7tt6A=="],
 
-    "@ggez/runtime-build": ["@ggez/runtime-build@0.1.3", "", { "dependencies": { "@ggez/editor-core": "0.1.3", "@ggez/geometry-kernel": "0.1.3", "@ggez/runtime-format": "0.1.3", "@ggez/shared": "0.1.3", "fflate": "^0.8.2", "three": "^0.181.1", "three-mesh-bvh": "^0.9.2" }, "bin": { "web-hammer-runtime-build": "dist/cli.js" } }, "sha512-SoqEvg5/81o0eX6J/0Vk3OwvleQtkvSHEsHFql00jX72AfDtKSxy3wRQ5mfNVclzrjRA0fe72otHwgvBoiQUrA=="],
+    "@ggez/runtime-build": ["@ggez/runtime-build@0.1.7", "", { "dependencies": { "@ggez/editor-core": "0.1.7", "@ggez/geometry-kernel": "0.1.7", "@ggez/runtime-format": "0.1.7", "@ggez/shared": "0.1.7", "fflate": "^0.8.2", "three": "^0.181.1", "three-mesh-bvh": "^0.9.2" }, "bin": { "web-hammer-runtime-build": "dist/cli.js" } }, "sha512-PiutfjgNgijGvEeJzIyQLFCFXRh8GKQfYPmLcJsvbTcOi0+vI8BagzB9yUbGmUtIYI3/hl0oGOGYHi31nBhmIg=="],
 
-    "@ggez/runtime-format": ["@ggez/runtime-format@0.1.3", "", { "dependencies": { "@ggez/shared": "0.1.3" } }, "sha512-Mb7Ycb+P67XCK9nulvUiCyk6PJG2p55YkXn3dFKGL7+6fZlTcg4SqdIVqXnObyEgYdkmFggLiZliE1Joar3d/w=="],
+    "@ggez/runtime-format": ["@ggez/runtime-format@0.1.7", "", { "dependencies": { "@ggez/shared": "0.1.7" } }, "sha512-fNLl8DvAo/s2+GwjkdhKK7tR0hmsG6BqmJVQxx0jGMlxKS4MlmEgMcoeFLotOxaQ915n9slNMM3MZmoOFaoo/w=="],
 
-    "@ggez/shared": ["@ggez/shared@0.1.3", "", { "dependencies": { "three": "^0.181.1" } }, "sha512-vXpRvVWQQxqYqPVCjPG/R6R09mfRzDwRomQpZQtajAmwNVs59Phfve0ZAjukg6NTwr8o1zPiae/OMRwRmUVe5w=="],
+    "@ggez/shared": ["@ggez/shared@0.1.7", "", { "dependencies": { "three": "^0.181.1" } }, "sha512-5zvZ6XwByP/A+0n9Q/8PBTCE6w95O2JMUviHJjYCoVSsOUlSgldPy1pOW5Qpb3c+2emvB8rsJLwweU1RpV5kiA=="],
 
-    "@ggez/three-runtime": ["@ggez/three-runtime@0.1.3", "", { "dependencies": { "@ggez/runtime-build": "0.1.3", "@ggez/runtime-format": "0.1.3", "@ggez/shared": "0.1.3", "earcut": "^3.0.2", "three": "^0.181.1" } }, "sha512-nOcq37oSkcCUZUU5DnPpvO3Ji7Qhoce9CHbsJ0Mn6vpXHkOsEIL9vHzSxwSKe3zaJ8Pm8o9/DZgAYQiV9dNw2Q=="],
+    "@ggez/three-runtime": ["@ggez/three-runtime@0.1.7", "", { "dependencies": { "@ggez/runtime-build": "0.1.7", "@ggez/runtime-format": "0.1.7", "@ggez/shared": "0.1.7", "earcut": "^3.0.2", "three": "^0.181.1" } }, "sha512-poJ5nGTdjHWw+uR4Sxx6QY9bzju2HeZ7jqOCdsqTA/hr5c3huzEUd2XXVLiUTT0V5Kjm3G9ql/9G5Mue5OFMbg=="],
 
     "@rollup/rollup-android-arm-eabi": ["@rollup/rollup-android-arm-eabi@4.60.0", "", { "os": "android", "cpu": "arm" }, "sha512-WOhNW9K8bR3kf4zLxbfg6Pxu2ybOUbB2AjMDHSQx86LIF4rH4Ft7vmMwNt0loO0eonglSNy4cpD3MKXXKQu0/A=="],
 

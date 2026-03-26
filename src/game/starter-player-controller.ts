@@ -66,12 +66,9 @@ const MOBILE_JOYSTICK_VERTICAL_DEADZONE = 0.15;
 const MOBILE_JOYSTICK_VERTICAL_RESPONSE_EXPONENT = 1.75;
 const MOBILE_JOYSTICK_VERTICAL_SCALE = 1.08;
 const MOBILE_TOUCH_YAW_RESPONSE = 8;
-const ON_FOOT_ANIMATION_PLAYBACK_SCALE = 2;
 const PLAYER_SCALE_FACTOR = 0.5;
-const RUN_SPEED_MULTIPLIER = 1.2;
 const UNMOUNTED_CAMERA_EYE_RESPONSE = 9;
 const UNMOUNTED_CAMERA_FOCUS_RESPONSE = 10;
-const WALK_SPEED_MULTIPLIER = 0.72;
 
 export class StarterPlayerController {
   readonly object = new Group();
@@ -108,6 +105,8 @@ export class StarterPlayerController {
   private readonly smoothedCameraEye = new Vector3();
   private readonly smoothedCameraFocus = new Vector3();
   private readonly standingHeight: number;
+  private readonly locomotionDirection = new Vector3();
+  private readonly animationRootMotionVelocity = new Vector3();
   private readonly supportVelocity = new Vector3();
   private readonly targetPlanarVelocity = new Vector3();
   private readonly planarVelocity = new Vector3();
@@ -130,6 +129,7 @@ export class StarterPlayerController {
   private animationScale = 1;
   private animationSkeletons: Skeleton[] = [];
   private animationSpeedValue = 0;
+  private animationTargetSpeed = 0;
   private bike: RegisteredBike | null = null;
   private mountedHandleBones: Bone[] = [];
   private mountedBikeLean = 0;
@@ -357,7 +357,7 @@ export class StarterPlayerController {
       }
     }
 
-    this.updateAnimation(deltaSeconds);
+    this.applyAnimationPose();
     this.setStatus(this.resolveStatusMessage(translation));
 
     this.gameplayRuntime.updateActor({
@@ -377,6 +377,7 @@ export class StarterPlayerController {
 
     if (this.mountedBike) {
       this.resolveMountedVelocity(deltaSeconds);
+      this.evaluateAnimation(deltaSeconds);
       const bikeControlInput = {
         boost: this.isRunning() || this.shouldUseMobileBikeBoost(),
         steer: this.mountedTurnInput,
@@ -399,6 +400,7 @@ export class StarterPlayerController {
     });
 
     this.resolveOnFootVelocity(deltaSeconds);
+    this.evaluateAnimation(deltaSeconds);
 
     const linearVelocity = setVector3FromPhysics(scratchLinearVelocity, this.body.motionProperties.linearVelocity);
     const groundedHit = this.jumpGroundLockRemaining > 0 ? undefined : this.resolveGroundHit(translation);
@@ -414,10 +416,14 @@ export class StarterPlayerController {
       this.supportVelocity.set(0, 0, 0);
     }
 
-    const planarRate = this.resolvePlanarVelocityRate(grounded, this.targetPlanarVelocity.lengthSq() > 0);
-    this.planarVelocity.lerp(this.targetPlanarVelocity, 1 - Math.exp(-deltaSeconds * planarRate));
+    if (grounded) {
+      this.planarVelocity.copy(this.animationRootMotionVelocity);
+    } else {
+      const planarRate = this.resolvePlanarVelocityRate(false, this.animationRootMotionVelocity.lengthSq() > 0);
+      this.planarVelocity.lerp(this.animationRootMotionVelocity, 1 - Math.exp(-deltaSeconds * planarRate));
+    }
 
-    if (grounded && this.targetPlanarVelocity.lengthSq() < 1e-5 && this.planarVelocity.lengthSq() < 0.0025) {
+    if (grounded && this.animationRootMotionVelocity.lengthSq() < 1e-5) {
       this.planarVelocity.set(0, 0, 0);
     }
 
@@ -536,7 +542,8 @@ export class StarterPlayerController {
 
     this.animationAnimator.setInt("mode", 0);
     this.animationAnimator.setFloat("speed", 0);
-    this.updateAnimation(0);
+    this.evaluateAnimation(0);
+    this.applyAnimationPose();
   }
 
   private axis(primary: string, secondary: string) {
@@ -771,8 +778,6 @@ export class StarterPlayerController {
   }
 
   private resolveOnFootVelocity(deltaSeconds: number) {
-    const walkSpeed = this.sceneSettings.player.movementSpeed * WALK_SPEED_MULTIPLIER;
-    const runSpeed = this.sceneSettings.player.runningSpeed * RUN_SPEED_MULTIPLIER;
     const viewDirection = resolveViewDirection(this.orbitYaw, this.pitch, scratchViewDirection);
     const forward = scratchForward.set(viewDirection.x, 0, viewDirection.z);
 
@@ -786,26 +791,44 @@ export class StarterPlayerController {
     const moveRight = this.getMoveRightInput();
     const moveForward = this.getMoveForwardInput();
     const inputMagnitude = Math.min(Math.hypot(moveRight, moveForward), 1);
-    const maxSpeed =
-      this.isTouchDevice && this.sceneSettings.player.canRun
-        ? MathUtils.lerp(walkSpeed, runSpeed, MathUtils.smoothstep(inputMagnitude, MOBILE_JOYSTICK_RUN_THRESHOLD, 1))
-        : this.sceneSettings.player.canRun && this.isRunning()
-          ? runSpeed
-          : walkSpeed;
-    this.targetPlanarVelocity
+    this.locomotionDirection
       .set(0, 0, 0)
       .addScaledVector(right, moveRight)
       .addScaledVector(forward, moveForward);
 
-    if (this.targetPlanarVelocity.lengthSq() > 0) {
-      this.targetPlanarVelocity.normalize().multiplyScalar(maxSpeed * inputMagnitude);
+    if (this.locomotionDirection.lengthSq() > 0) {
+      this.locomotionDirection.normalize();
       this.yaw = dampAngle(
         this.yaw,
-        yawFromVector(this.targetPlanarVelocity),
+        yawFromVector(this.locomotionDirection),
         this.isTouchDevice ? MOBILE_TOUCH_YAW_RESPONSE : 14,
         deltaSeconds
       );
+      this.animationTargetSpeed = this.resolveOnFootAnimationTargetSpeed(inputMagnitude);
+      return;
     }
+
+    this.animationTargetSpeed = 0;
+  }
+
+  private resolveOnFootAnimationTargetSpeed(inputMagnitude: number) {
+    if (inputMagnitude <= 0.001) {
+      return 0;
+    }
+
+    if (this.isTouchDevice) {
+      if (this.sceneSettings.player.canRun && inputMagnitude >= MOBILE_JOYSTICK_RUN_THRESHOLD) {
+        return 2;
+      }
+
+      return 1;
+    }
+
+    if (this.sceneSettings.player.canRun && this.isRunning()) {
+      return 2;
+    }
+
+    return 1;
   }
 
   private resolvePlanarVelocityRate(grounded: boolean, hasMovementInput: boolean) {
@@ -821,22 +844,10 @@ export class StarterPlayerController {
       return 1;
     }
 
-    const locomotionSpeed = this.planarVelocity.length();
-    const walkSpeed = Math.max(this.sceneSettings.player.movementSpeed * WALK_SPEED_MULTIPLIER, 0.001);
-    const runSpeed = Math.max(this.sceneSettings.player.runningSpeed * RUN_SPEED_MULTIPLIER, walkSpeed + 0.001);
-
-    if (locomotionSpeed < 0.01) {
-      return 0;
-    }
-
-    if (locomotionSpeed <= walkSpeed) {
-      return MathUtils.clamp(locomotionSpeed / walkSpeed, 0, 1);
-    }
-
-    return MathUtils.clamp(1 + (locomotionSpeed - walkSpeed) / (runSpeed - walkSpeed), 1, 2);
+    return this.animationTargetSpeed;
   }
 
-  private updateAnimation(deltaSeconds: number) {
+  private evaluateAnimation(deltaSeconds: number) {
     if (!this.animationAnimator || !this.animationDisplayPose || this.animationBonesByName.size === 0) {
       return;
     }
@@ -849,19 +860,47 @@ export class StarterPlayerController {
     }
 
     const targetSpeed = this.resolveAnimationSpeedParameter();
-    const playbackRate = this.resolveAnimationPlaybackRate(targetSpeed);
-    const blendRate = this.mountedBike ? 10 : targetSpeed > 1 ? 8 : 12;
-    this.animationSpeedValue = damp(this.animationSpeedValue, targetSpeed, blendRate, deltaSeconds);
+    const playbackRate = 1;
+    this.animationSpeedValue = targetSpeed;
 
     this.animationAnimator.setInt("mode", this.animationModeValue);
     this.animationAnimator.setFloat("speed", this.animationSpeedValue);
     const result = this.animationAnimator.update(deltaSeconds * playbackRate);
+    if (!this.mountedBike && deltaSeconds > 1e-5) {
+      scratchRootMotionDelta
+        .set(
+          result.rootMotion.translation[0] * this.animationScale,
+          0,
+          result.rootMotion.translation[2] * this.animationScale
+        )
+        .applyAxisAngle(scratchWorldUpAxis, this.yaw + Math.PI);
+      this.animationRootMotionVelocity.copy(scratchRootMotionDelta).multiplyScalar(1 / deltaSeconds);
+    } else {
+      this.animationRootMotionVelocity.set(0, 0, 0);
+    }
     copyPose(result.pose, this.animationDisplayPose);
     forceBoneTranslationToBindPose(
       this.animationDisplayPose.translations,
       this.animationAnimator.rig.bindTranslations,
       this.animationAnimator.rig.rootBoneIndex
     );
+
+    if (this.mountedBike) {
+      this.animationRootCompensation.x -= result.rootMotion.translation[0] * this.animationScale;
+      this.animationRootCompensation.z -= result.rootMotion.translation[2] * this.animationScale;
+    } else {
+      this.animationRootCompensation.x = 0;
+      this.animationRootCompensation.z = 0;
+    }
+
+    this.syncAnimationOffset();
+  }
+
+  private applyAnimationPose() {
+    if (!this.animationAnimator || !this.animationDisplayPose || this.animationBonesByName.size === 0) {
+      return;
+    }
+
     applyPoseBufferToBoneHierarchy(
       this.animationDisplayPose,
       this.animationAnimator.rig.boneNames,
@@ -870,30 +909,7 @@ export class StarterPlayerController {
     );
     this.applyMountedPoseAdjustments();
 
-    this.animationRootCompensation.x -= result.rootMotion.translation[0] * this.animationScale;
-    this.animationRootCompensation.z -= result.rootMotion.translation[2] * this.animationScale;
-
-    if (!this.mountedBike && this.planarVelocity.lengthSq() < 0.0025) {
-      this.animationRootCompensation.lerp(scratchZeroVector, 1 - Math.exp(-deltaSeconds * 12));
-    }
-
     this.syncAnimationOffset();
-  }
-
-  private resolveAnimationPlaybackRate(targetSpeed: number) {
-    const locomotionSpeed = this.planarVelocity.length();
-
-    if (this.mountedBike) {
-      return MathUtils.clamp(Math.max(locomotionSpeed, 1) / 2.4, 1, 3.25);
-    }
-
-    if (locomotionSpeed < 0.05) {
-      return 1;
-    }
-
-    // The graph thresholds are 0/1/2, but the controller moves much faster in world units.
-    // Scale clip playback separately so footsteps keep up with actual motion.
-    return MathUtils.clamp((locomotionSpeed / Math.max(targetSpeed, 1)) * ON_FOOT_ANIMATION_PLAYBACK_SCALE, 1, 6);
   }
 
   private syncAnimationOffset() {
@@ -1324,12 +1340,14 @@ const scratchRearSample = new Vector3();
 const scratchRearPivotWorld = new Vector3();
 const scratchRight = new Vector3();
 const scratchRightAxis = new Vector3(1, 0, 0);
+const scratchRootMotionDelta = new Vector3();
 const scratchRotatedRearAnchor = new Vector3();
 const scratchTargetCameraPosition = new Vector3();
 const scratchFrontSample = new Vector3();
 const scratchInverseYaw = new Quaternion();
 const scratchSurfaceNormal = new Vector3();
 const scratchViewDirection = new Vector3();
+const scratchWorldUpAxis = new Vector3(0, 1, 0);
 const scratchYawEuler = new Euler(0, 0, 0, "YXZ");
 const scratchYawForward = new Vector3();
 const scratchYawQuaternion = new Quaternion();

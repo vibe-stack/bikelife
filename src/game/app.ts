@@ -11,6 +11,7 @@ import { createDefaultGameplaySystems, createStarterGameplayHost, mergeGameplayS
 import { createPhysicsWorld, destroyPhysicsWorld, ensurePhysicsRuntime, stepPhysicsWorld, type PhysicsWorld } from "./physics";
 import { createRuntimePhysicsSession, type RuntimePhysicsSession } from "./runtime-physics";
 import type { GameSceneBootstrapContext, GameSceneDefinition, GameSceneLifecycle } from "./scene-types";
+import { configureRendererShadows } from "./shadows";
 import type { StarterPlayerController } from "./starter-player-controller";
 
 type GameAppOptions = {
@@ -65,7 +66,7 @@ export function createGameApp(options: GameAppOptions) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.max(0.5, Math.min(window.devicePixelRatio, 2) * 0.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
+  configureRendererShadows(renderer);
   shell.append(renderer.domElement);
 
   const scene = new THREE.Scene();

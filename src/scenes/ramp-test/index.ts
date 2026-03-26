@@ -5,6 +5,7 @@ import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.j
 import { Box3, Color, DirectionalLight, HemisphereLight, Mesh, Vector3, type Object3D } from "three";
 import { raycastClosest, type PhysicsWorld } from "../../game/physics";
 import { createPublicRuntimeSceneSource, defineGameScene } from "../../game/runtime-scene-sources";
+import { applyShadowFlags, configureDirectionalShadowLight } from "../../game/shadows";
 
 const bikeLoader = new GLTFLoader();
 bikeLoader.setMeshoptDecoder(MeshoptDecoder);
@@ -27,11 +28,14 @@ export const rampTest = defineGameScene({
       scene.fog.color.copy(skyColor);
     }
 
+    applyShadowFlags(runtimeScene.root);
+
     const skyLight = new HemisphereLight("#d8efff", "#d4c2a6", 1.65);
     const sunLight = new DirectionalLight("#fff3d6", 1.2);
     sunLight.position.set(18, 26, 10);
-    sunLight.castShadow = true;
+    configureDirectionalShadowLight(sunLight);
     scene.add(skyLight);
+    scene.add(sunLight.target);
     scene.add(sunLight);
 
     const bikeGltf = await bikeLoader.loadAsync(bikeModelUrl);
@@ -114,6 +118,7 @@ export const rampTest = defineGameScene({
         player?.attachBike(null);
         scene.remove(skyLight);
         scene.remove(sunLight);
+        scene.remove(sunLight.target);
         scene.remove(bike);
         window.removeEventListener("keydown", handleKeyDown);
       }
